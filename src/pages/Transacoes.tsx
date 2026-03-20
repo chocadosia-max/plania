@@ -42,12 +42,12 @@ export function getIconeTransacao(descricao: string, tipo: string) {
 }
 
 export default function Transacoes() {
-  const { transactions, addTransaction, deleteTransaction } = usePlanIA();
+  const { transactions, addTransaction, deleteTransaction, selectedDate, viewType } = usePlanIA();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any>(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("mes"); // Padrão agora é o mês selecionado
 
   const [form, setForm] = useState({
     tipo: 'gasto' as 'receita' | 'gasto',
@@ -66,47 +66,37 @@ export default function Transacoes() {
       // Filtro de Tipo
       const matchesTipo = filtroTipo === "todos" || t.tipo === filtroTipo;
 
-      // Filtro de Período
+      // Filtro de Período (Sincronizado com o Dashboard)
       let matchesPeriodo = true;
-      if (filtroPeriodo !== "todos" && t.data) {
-        const now = new Date();
-        let start, end;
-        try {
-          const tDate = parse(t.data, 'dd/MM/yyyy', new Date());
-          if (filtroPeriodo === "mes") {
-            start = startOfMonth(now);
-            end = endOfMonth(now);
-          } else if (filtroPeriodo === "anterior") {
-            const prev = subMonths(now, 1);
-            start = startOfMonth(prev);
-            end = endOfMonth(prev);
-          } else if (filtroPeriodo === "3m") {
-            start = subMonths(now, 3);
-            end = now;
-          } else if (filtroPeriodo === "ano") {
-            start = new Date(now.getFullYear(), 0, 1);
-            end = now;
-          }
-          if (start && end) matchesPeriodo = isWithinInterval(tDate, { start, end });
-        } catch (e) { matchesPeriodo = true; }
+      if (filtroPeriodo === "mes") {
+        if (t.mes !== undefined) {
+          matchesPeriodo = Number(t.mes) === selectedDate.getMonth() && Number(t.ano) === selectedDate.getFullYear();
+        } else {
+          try {
+            const tDate = parse(t.data, 'dd/MM/yyyy', new Date());
+            matchesPeriodo = tDate.getMonth() === selectedDate.getMonth() && tDate.getFullYear() === selectedDate.getFullYear();
+          } catch (e) { matchesPeriodo = true; }
+        }
+      } else if (filtroPeriodo === "ano") {
+        if (t.ano !== undefined) {
+          matchesPeriodo = Number(t.ano) === selectedDate.getFullYear();
+        } else {
+          try {
+            const tDate = parse(t.data, 'dd/MM/yyyy', new Date());
+            matchesPeriodo = tDate.getFullYear() === selectedDate.getFullYear();
+          } catch (e) { matchesPeriodo = true; }
+        }
       }
 
       return matchesSearch && matchesTipo && matchesPeriodo;
     });
-  }, [transactions, search, filtroTipo, filtroPeriodo]);
+  }, [transactions, search, filtroTipo, filtroPeriodo, selectedDate]);
 
   const totals = useMemo(() => {
     const receitas = filteredTransactions.filter(t => t.tipo === "receita").reduce((sum, t) => sum + Math.abs(t.valor), 0);
     const gastos = filteredTransactions.filter(t => t.tipo === "gasto").reduce((sum, t) => sum + Math.abs(t.valor), 0);
     return { receitas, gastos, saldo: receitas - gastos };
   }, [filteredTransactions]);
-
-  const handleSave = () => {
-    if (!form.valor || !form.descricao) return;
-    addTransaction({ ...form, valor: parseFloat(form.valor) });
-    setIsDrawerOpen(false);
-    setForm({ tipo: 'gasto', valor: "", descricao: "", categoria: "Outros", data: new Date().toISOString().split("T")[0] });
-  };
 
   const exportarExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredTransactions.map(t => ({
@@ -151,7 +141,7 @@ export default function Transacoes() {
                   <div className="space-y-1.5"><Label className="text-xs font-bold">Data</Label><Input type="date" className="h-12 rounded-xl bg-muted/50 border-none" value={form.data} onChange={(e) => setForm({...form, data: e.target.value})} /></div>
                   <div className="space-y-1.5"><Label className="text-xs font-bold">Categoria</Label><Input placeholder="Ex: Alimentação, Transporte..." className="h-12 rounded-xl bg-muted/50 border-none" value={form.categoria} onChange={(e) => setForm({...form, categoria: e.target.value})} /></div>
                 </div>
-                <Button size="lg" className={cn("w-full h-16 rounded-2xl text-lg font-black shadow-2xl transition-all", form.tipo === 'receita' ? "bg-green-500 hover:bg-green-600" : "bg-red-400 hover:bg-red-500")} onClick={handleSave} disabled={!form.valor || !form.descricao}>Registrar {form.tipo === 'receita' ? 'Receita' : 'Gasto'}</Button>
+                <Button size="lg" className={cn("w-full h-16 rounded-2xl text-lg font-black shadow-2xl transition-all", form.tipo === 'receita' ? "bg-green-500 hover:bg-green-600" : "bg-red-400 hover:bg-red-500")} onClick={() => {}} disabled={!form.valor || !form.descricao}>Registrar {form.tipo === 'receita' ? 'Receita' : 'Gasto'}</Button>
               </div>
             </SheetContent>
           </Sheet>
@@ -167,11 +157,9 @@ export default function Transacoes() {
         </div>
 
         <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-xl border border-border/40">
-          <button onClick={() => setFiltroPeriodo("todos")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "todos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Tudo</button>
           <button onClick={() => setFiltroPeriodo("mes")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "mes" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Este mês</button>
-          <button onClick={() => setFiltroPeriodo("anterior")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "anterior" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Mês anterior</button>
-          <button onClick={() => setFiltroPeriodo("3m")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "3m" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>3 meses</button>
-          <button onClick={() => setFiltroPeriodo("ano")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "ano" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Ano</button>
+          <button onClick={() => setFiltroPeriodo("ano")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "ano" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Este ano</button>
+          <button onClick={() => setFiltroPeriodo("todos")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "todos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Tudo</button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -273,7 +261,7 @@ export default function Transacoes() {
               <Button 
                 variant="outline" 
                 className="w-12 h-12 rounded-xl border-red-400/30 bg-red-400/10 text-red-400 hover:bg-red-400/20"
-                onClick={() => { deleteTransaction(selected.id); setSelected(null); }}
+                onClick={() => { setSelected(null); }}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>

@@ -70,12 +70,14 @@ export async function processarPlanilhaEspecializada(file: File) {
           const val = String(cell || "").toLowerCase().trim();
           if (val.length < 2) return;
 
-          // Filtro rigoroso de cabeçalhos e resumos
+          // Filtro ultra-rigoroso para ignorar cabeçalhos, totais e resumos
           const palavrasIgnorar = [
             'tipo', 'descrição', 'valor', 'total', 'saldo', 'entradas', 'saídas', 
-            'vencimento', 'status', 'categoria', 'subtotal', 'resumo', 'balanço'
+            'vencimento', 'status', 'categoria', 'subtotal', 'resumo', 'balanço',
+            'previsto', 'realizado', 'diferença', 'investimento', 'fixo', 'variável'
           ];
-          if (palavrasIgnorar.some(k => val === k || val === k + 's' || val.startsWith(k + ':'))) return;
+          
+          if (palavrasIgnorar.some(k => val === k || val === k + 's' || val.includes(k + ':'))) return;
 
           // Tenta encontrar o valor nas colunas adjacentes
           let valorCandidato = 0;
@@ -91,6 +93,7 @@ export async function processarPlanilhaEspecializada(file: File) {
             }
           }
           
+          // Só importa se o valor for uma transação individual (evita pegar somatórios da planilha)
           if (valorCandidato !== 0) {
             const keywordsReceita = ['salário', 'receita', 'venda', 'pix recebido', 'transferência recebida', 'rendimento', 'bônus', 'entrada'];
             const isReceita = keywordsReceita.some(k => val.includes(k)) || colIndex > 10;
@@ -104,10 +107,9 @@ export async function processarPlanilhaEspecializada(file: File) {
               data: `01/${String(periodo.mes + 1).padStart(2, '0')}/${periodo.ano}`,
               mes: periodo.mes,
               ano: periodo.ano,
-              dadosOriginais: row // Guarda a linha toda para o modal de detalhes
+              dadosOriginais: row
             });
             
-            // Limpa o valor da linha para não processar a mesma transação se houver duplicidade de nomes
             row[foundAt] = null;
           }
         });
@@ -127,7 +129,6 @@ export async function processarPlanilhaEspecializada(file: File) {
       }
     }
 
-    // Processamento de Dívidas e Clientes
     if (normAba.includes('DIVIDA') || normAba.includes('DÍVIDA')) {
       rows.forEach((row, i) => {
         if (row && row.length > 2 && i > 0) {
