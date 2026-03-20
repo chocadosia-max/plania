@@ -7,6 +7,7 @@ import {
   ShoppingCart, Home, Car, Utensils, Gamepad2, Zap, Briefcase,
   Heart, Music, CheckCircle2, X
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip as UITooltip,
@@ -105,6 +106,7 @@ function StatCard({
   sparkData,
   tooltip,
   delay,
+  link,
 }: {
   icon: any;
   label: string;
@@ -116,33 +118,38 @@ function StatCard({
   sparkData: number[];
   tooltip: string;
   delay: number;
+  link?: string;
 }) {
   const animatedValue = useCounter(targetValue);
+
+  const content = (
+    <div
+      className="glass-card rounded-xl p-5 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group cursor-pointer"
+      style={{ animation: `reveal 0.6s cubic-bezier(0.16,1,0.3,1) both`, animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <Icon className="w-4 h-4 text-primary animate-[pulse-soft_2.5s_ease-in-out_infinite]" />
+        </div>
+        <span className={`text-xs font-medium flex items-center gap-0.5 ${positive ? "text-green-500" : "text-red-400"}`}>
+          {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          {change}
+        </span>
+      </div>
+      <p className="text-2xl font-bold font-mono-financial text-foreground">
+        {prefix}{animatedValue.toLocaleString("pt-BR")}
+      </p>
+      <div className="flex items-center justify-between mt-1">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <Sparkline data={sparkData} color={accentColor} />
+      </div>
+    </div>
+  );
 
   return (
     <UITooltip>
       <TooltipTrigger asChild>
-        <div
-          className="glass-card rounded-xl p-5 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group cursor-default"
-          style={{ animation: `reveal 0.6s cubic-bezier(0.16,1,0.3,1) both`, animationDelay: `${delay}ms` }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <Icon className="w-4 h-4 text-primary animate-[pulse-soft_2.5s_ease-in-out_infinite]" />
-            </div>
-            <span className={`text-xs font-medium flex items-center gap-0.5 ${positive ? "text-green-500" : "text-red-400"}`}>
-              {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-              {change}
-            </span>
-          </div>
-          <p className="text-2xl font-bold font-mono-financial text-foreground">
-            {prefix}{animatedValue.toLocaleString("pt-BR")}
-          </p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <Sparkline data={sparkData} color={accentColor} />
-          </div>
-        </div>
+        {link ? <Link to={link}>{content}</Link> : content}
       </TooltipTrigger>
       <TooltipContent side="bottom"><p className="text-xs">{tooltip}</p></TooltipContent>
     </UITooltip>
@@ -204,10 +211,10 @@ const Dashboard = () => {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard icon={Wallet} label="Saldo Atual" targetValue={16320} change="+8,2%" positive accentColor="hsl(var(--chart-1))" sparkData={sparklines.saldo} tooltip="Saldo consolidado de todas as contas" delay={0} />
-        <StatCard icon={TrendingUp} label="Receitas do mês" targetValue={5600} change="+14,3%" positive accentColor="hsl(var(--chart-2))" sparkData={sparklines.receita} tooltip="Total de entradas em março" delay={80} />
-        <StatCard icon={CreditCard} label="Gastos do mês" targetValue={3497} change="-3,1%" positive={false} accentColor="hsl(var(--chart-3))" sparkData={sparklines.gastos} tooltip="Total de saídas em março" delay={160} />
-        <StatCard icon={PiggyBank} label="Economia" targetValue={2103} prefix="R$ " change="37,5% do salário" positive accentColor="hsl(var(--chart-4))" sparkData={sparklines.economia} tooltip="Diferença entre receitas e gastos" delay={240} />
+        <StatCard icon={Wallet} label="Saldo Atual" targetValue={16320} change="+8,2%" positive accentColor="hsl(var(--chart-1))" sparkData={sparklines.saldo} tooltip="Saldo consolidado de todas as contas" delay={0} link="/dashboard/transacoes" />
+        <StatCard icon={TrendingUp} label="Receitas do mês" targetValue={5600} change="+14,3%" positive accentColor="hsl(var(--chart-2))" sparkData={sparklines.receita} tooltip="Total de entradas em março" delay={80} link="/dashboard/transacoes" />
+        <StatCard icon={CreditCard} label="Gastos do mês" targetValue={3497} change="-3,1%" positive={false} accentColor="hsl(var(--chart-3))" sparkData={sparklines.gastos} tooltip="Total de saídas em março" delay={160} link="/dashboard/transacoes" />
+        <StatCard icon={PiggyBank} label="Economia" targetValue={2103} prefix="R$ " change="37,5% do salário" positive accentColor="hsl(var(--chart-4))" sparkData={sparklines.economia} tooltip="Diferença entre receitas e gastos" delay={240} link="/dashboard/metas" />
       </div>
 
       {/* Charts row */}
@@ -215,6 +222,11 @@ const Dashboard = () => {
         <div className="lg:col-span-2 glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '400ms' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground text-sm">Receitas vs Gastos</h3>
+            <Link to="/dashboard/relatorios">
+              <Button variant="ghost" size="sm" className="text-xs text-[#6366F1] hover:underline hover:opacity-80 transition-all duration-200 cursor-pointer">
+                Ver mais
+              </Button>
+            </Link>
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyData}>
@@ -232,7 +244,14 @@ const Dashboard = () => {
         </div>
 
         <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '600ms' }}>
-          <h3 className="font-semibold text-foreground text-sm mb-4">Gastos por categoria</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground text-sm">Gastos por categoria</h3>
+            <Link to="/dashboard/orcamentos">
+              <Button variant="ghost" size="sm" className="text-xs text-[#6366F1] hover:underline hover:opacity-80 transition-all duration-200 cursor-pointer">
+                Ver todos
+              </Button>
+            </Link>
+          </div>
           <div className="h-[180px] w-full">
             {/* Pie chart content here */}
           </div>
@@ -258,9 +277,11 @@ const Dashboard = () => {
       <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '1000ms' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground text-sm">Transações recentes</h3>
-          <Button variant="ghost" size="sm" className="text-xs text-primary">
-            Ver todas
-          </Button>
+          <Link to="/dashboard/transacoes">
+            <Button variant="ghost" size="sm" className="text-xs text-[#6366F1] hover:underline hover:opacity-80 transition-all duration-200 cursor-pointer">
+              Ver todas
+            </Button>
+          </Link>
         </div>
         <div className="space-y-1">
           {transactions.map((t, i) => {
