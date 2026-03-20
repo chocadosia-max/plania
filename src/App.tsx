@@ -15,6 +15,7 @@ import Investimentos from "./pages/Investimentos";
 import Themes from "./pages/Themes";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
+import InsightDetail from "./pages/InsightDetail";
 import Onboarding from "./pages/Onboarding";
 import Importar from "./pages/Importar";
 import NotFound from "./pages/NotFound";
@@ -52,6 +53,7 @@ const App = () => (
               />
               <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
               <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
+              <Route path="/dashboard/relatorios/insight/:id" element={<DashWrap><InsightDetail /></DashWrap>} />
               <Route path="/dashboard/importar" element={<DashWrap><Importar /></DashWrap>} />
               
               <Route path="/themes" element={<Themes />} />
