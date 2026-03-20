@@ -61,7 +61,7 @@ export default function Metas() {
     const goal = goals.find(g => g.id === id);
     setGoals(prev => prev.filter(g => g.id !== id));
     toast.error(`🗑️ Meta '${goal?.name}' excluída`, {
-      action: { label: "Desfazer →", onClick: () => setTransactions(prev => [...prev, goal!]) }
+      action: { label: "Desfazer →", onClick: () => setGoals(prev => [...prev, goal!]) }
     });
   };
 
@@ -136,7 +136,7 @@ function GoalCard({ goal: g, delay, onArchive, onDelete, onReactivate, isArchive
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setIsDeleteModalOpen(true)}>
               <Trash2 className="w-4 h-4" /> Excluir meta
-            </MenuItem>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
