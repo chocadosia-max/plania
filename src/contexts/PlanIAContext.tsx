@@ -12,22 +12,6 @@ export interface DynamicTab {
   isNew: boolean;
 }
 
-// Função de normalização global
-export function normalizarTransacao(t: any) {
-  const valorRaw = t.valor || t.value || t.amount || t.quantia || 0;
-  const valor = typeof valorRaw === 'string' ? parseFloat(valorRaw.replace(',', '.')) : parseFloat(valorRaw);
-  
-  return {
-    id: t.id || t._id || Math.random().toString(36).substr(2, 9),
-    descricao: t.descricao || t.description || t.nome || t.name || t.title || t.titulo || t.label || "Sem descrição",
-    valor: valor,
-    tipo: t.tipo || t.type || t.kind || (valor >= 0 ? "receita" : "gasto"),
-    categoria: t.categoria || t.category || t.cat || t.tag || "Sem categoria",
-    data: t.data || t.date || t.createdAt || t.created_at || new Date().toLocaleDateString("pt-BR"),
-    icone: t.icone || t.icon || t.emoji || ""
-  };
-}
-
 interface PlanIAContextType {
   transactions: any[];
   goals: any[];
@@ -52,38 +36,23 @@ interface PlanIAContextType {
 
 const PlanIAContext = createContext<PlanIAContextType | undefined>(undefined);
 
-const safeParseAndNormalize = (key: string, fallback: any) => {
+const safeParse = (key: string, fallback: any) => {
   try {
     const item = localStorage.getItem(key);
     if (!item) return fallback;
     const parsed = JSON.parse(item);
-    if (!Array.isArray(parsed)) return fallback;
-    
-    // Se for transações, normaliza na carga
-    if (key.includes("transacoes") || key.includes("transactions")) {
-      return parsed.map(normalizarTransacao);
-    }
-    return parsed;
+    return Array.isArray(parsed) ? parsed : fallback;
   } catch (e) {
     return fallback;
   }
 };
 
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<any[]>(() => {
-    // Tenta as chaves possíveis
-    const chaves = ["plania_transacoes", "transacoes", "transactions"];
-    for (const c of chaves) {
-      const data = safeParseAndNormalize(c, null);
-      if (data) return data;
-    }
-    return [];
-  });
-
-  const [goals, setGoals] = useState<any[]>(() => safeParseAndNormalize("plania_metas", []));
-  const [budgets, setBudgets] = useState<any[]>(() => safeParseAndNormalize("plania_orcamentos", []));
-  const [investments, setInvestments] = useState<any[]>(() => safeParseAndNormalize("plania_investimentos", []));
-  const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => safeParseAndNormalize("plania_tabs", []));
+  const [transactions, setTransactions] = useState<any[]>(() => safeParse("plania_transacoes", []));
+  const [goals, setGoals] = useState<any[]>(() => safeParse("plania_metas", []));
+  const [budgets, setBudgets] = useState<any[]>(() => safeParse("plania_orcamentos", []));
+  const [investments, setInvestments] = useState<any[]>(() => safeParse("plania_investimentos", []));
+  const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => safeParse("plania_tabs", []));
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -98,12 +67,14 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const importData = (data: any[], mode: 'add' | 'replace') => {
     setIsSyncing(true);
+    // Simula processamento para feedback visual
     setTimeout(() => {
-      const normalized = Array.isArray(data) ? data.map(normalizarTransacao) : [];
+      const cleanData = Array.isArray(data) ? data : [];
+      
       if (mode === 'replace') {
-        setTransactions(normalized);
+        setTransactions(cleanData);
       } else {
-        setTransactions(prev => [...normalized, ...prev]);
+        setTransactions(prev => [...cleanData, ...prev]);
       }
       
       if (analysis) {
@@ -120,13 +91,25 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
         localStorage.setItem("plania-user-type", analysis.perfil);
       }
+      
       setIsSyncing(false);
       setLastSync(new Date());
-      toast.success("Dados importados com sucesso! 🚀");
-    }, 1500);
+      localStorage.setItem("plania-show-import-success", "true");
+      
+      // Salva resumo para o card de sucesso no dashboard
+      const summary = {
+        count: cleanData.length,
+        income: cleanData.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + t.valor, 0),
+        expenses: cleanData.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + t.valor, 0),
+        savings: cleanData.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + t.valor, 0) - cleanData.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + t.valor, 0)
+      };
+      localStorage.setItem("plania-adapted-summary", JSON.stringify(summary));
+      
+      toast.success("Importação concluída com sucesso! 🚀");
+    }, 1000);
   };
 
-  const addTransaction = (t: any) => setTransactions(prev => [normalizarTransacao(t), ...prev]);
+  const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
   const deleteTransaction = (id: string) => setTransactions(prev => prev.filter(t => t.id !== id));
   
   const addGoal = (g: any) => setGoals(prev => [{ ...g, id: Date.now().toString() }, ...prev]);
