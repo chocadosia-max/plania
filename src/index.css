@@ -94,27 +94,6 @@
     --popover-foreground: 200 20% 92%;
     --primary: 190 85% 45%;
     --primary-foreground: 210 45% 8%;
-    --secondary: 210 60% 35%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 30% 18%;
-    --muted-foreground: 210 15% 50%;
-    --accent: 185 70% 42%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 210 30% 20%;
-    --input: 210 30% 20%;
-    --ring: 190 85% 45%;
-    --radius: 0.75rem;
-    --chart-1: 190 85% 45%;
-    --chart-2: 210 60% 35%;
-    --chart-3: 170 60% 40%;
-    --chart-4: 220 50% 50%;
-    --chart-5: 185 70% 42%;
-    --sidebar-background: 210 45% 8%;
-    --sidebar-foreground: 200 20% 92%;
-    --sidebar-primary: 190 85% 45%;
-    --sidebar-primary-foreground: 210 45% 8%;
     --sidebar-accent: 210 30% 15%;
     --sidebar-accent-foreground: 200 20% 92%;
     --sidebar-border: 210 30% 18%;
@@ -344,6 +323,11 @@
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ── VERDE: pulso suave e tranquilo ── */
