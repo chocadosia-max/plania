@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Wallet, TrendingUp, CreditCard, PiggyBank,
-  ChevronLeft, ChevronRight, Calendar
+  ChevronLeft, ChevronRight, Calendar, Target, 
+  ArrowUpRight, AlertTriangle, Trophy, Landmark
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { getIconeTransacao } from "./Transacoes";
 import { format, addMonths, subMonths, addYears, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,7 +43,7 @@ function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, posi
 }
 
 const Dashboard = () => {
-  const { selectedDate, setSelectedDate, viewType, setViewType } = usePlanIA();
+  const { selectedDate, setSelectedDate, viewType, setViewType, goals, budgets, investments, dividas, getBudgetSpent } = usePlanIA();
 
   const periodo: Periodo = {
     tipo: viewType,
@@ -50,6 +52,30 @@ const Dashboard = () => {
   };
 
   const dados = useDadosFinanceiros(periodo);
+
+  // Cálculos automáticos baseados no contexto
+  const totalInvestido = useMemo(() => investments.reduce((acc, inv) => acc + (Number(inv.valor) || 0), 0), [investments]);
+  const totalDividas = useMemo(() => dividas.reduce((acc, d) => {
+    const pags = d.pagamentos || {};
+    const totalPago = Object.values(pags).reduce((a: any, b: any) => a + (Number(b) || 0), 0);
+    return acc + Math.max(0, (Number(d.valorTotal) || 0) - totalPago);
+  }, 0), [dividas]);
+
+  const orcamentosCriticos = useMemo(() => {
+    return budgets.map(b => {
+      const spent = getBudgetSpent(b.categoria);
+      const pct = (spent / b.limite) * 100;
+      return { ...b, spent, pct };
+    }).filter(b => b.pct >= 80).sort((a, b) => b.pct - a.pct);
+  }, [budgets, getBudgetSpent]);
+
+  const metasDestaque = useMemo(() => {
+    return [...goals].sort((a, b) => {
+      const pctA = (a.valorAtual / a.valorAlvo);
+      const pctB = (b.valorAtual / b.valorAlvo);
+      return pctB - pctA;
+    }).slice(0, 2);
+  }, [goals]);
 
   const handlePrev = () => setSelectedDate(viewType === 'month' ? subMonths(selectedDate, 1) : subYears(selectedDate, 1));
   const handleNext = () => setSelectedDate(viewType === 'month' ? addMonths(selectedDate, 1) : addYears(selectedDate, 1));
@@ -91,6 +117,7 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Primeira Linha: Fluxo de Caixa */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard icon={Wallet} label="Saldo" targetValue={dados.saldo} change={dados.saldo >= 0 ? "↑" : "↓"} positive={dados.saldo >= 0} delay={0} link="/dashboard/transacoes" />
         <StatCard icon={TrendingUp} label="Receitas" targetValue={dados.receitas} positive delay={80} link="/dashboard/transacoes" />
@@ -98,7 +125,14 @@ const Dashboard = () => {
         <StatCard icon={PiggyBank} label="Economia" targetValue={dados.economia} prefix="" suffix="%" positive delay={240} link="/dashboard/metas" />
       </div>
 
+      {/* Segunda Linha: Patrimônio e Dívidas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard icon={Landmark} label="Patrimônio Investido" targetValue={totalInvestido} delay={300} link="/dashboard/investimentos" />
+        <StatCard icon={AlertTriangle} label="Total em Dívidas" targetValue={totalDividas} positive={false} delay={350} link="/dashboard/dividas" />
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-6">
+        {/* Transações Recentes */}
         <div className="lg:col-span-2 glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '400ms' }}>
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Transações Recentes</h3>
@@ -129,19 +163,64 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="glass-card rounded-xl p-6 bg-primary/5 border-primary/20 animate-reveal" style={{ animationDelay: '600ms' }}>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-            <TrendingUp className="w-5 h-5 text-primary" />
+        {/* Metas e Orçamentos */}
+        <div className="space-y-6">
+          {/* Metas em Destaque */}
+          <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '500ms' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Metas Próximas</h3>
+              <Trophy className="w-4 h-4 text-primary" />
+            </div>
+            <div className="space-y-4">
+              {metasDestaque.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground text-center py-4">Nenhuma meta cadastrada.</p>
+              ) : (
+                metasDestaque.map((meta, i) => {
+                  const pct = Math.min(Math.round((meta.valorAtual / meta.valorAlvo) * 100), 100);
+                  return (
+                    <div key={i} className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>{meta.emoji} {meta.nome}</span>
+                        <span className="text-primary">{pct}%</span>
+                      </div>
+                      <Progress value={pct} className="h-1.5" />
+                    </div>
+                  );
+                })
+              )}
+              <Link to="/dashboard/metas">
+                <Button variant="ghost" className="w-full mt-2 text-[10px] font-black uppercase h-8">Gerenciar Metas</Button>
+              </Link>
+            </div>
           </div>
-          <h3 className="text-lg font-bold mb-2">Análise Inteligente</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-            {dados.saldo >= 0 
-              ? `Você economizou ${dados.economia}% da sua renda este mês. Continue assim para atingir suas metas mais rápido!`
-              : "Seus gastos superaram as receitas. Analise as categorias onde você mais gastou para ajustar seu orçamento."}
-          </p>
-          <Link to="/dashboard/relatorios">
-            <Button className="w-full rounded-xl font-bold text-xs uppercase tracking-widest">Ver Relatório Completo</Button>
-          </Link>
+
+          {/* Orçamentos Críticos */}
+          <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '600ms' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Alertas de Orçamento</h3>
+              <AlertTriangle className="w-4 h-4 text-orange-400" />
+            </div>
+            <div className="space-y-3">
+              {orcamentosCriticos.length === 0 ? (
+                <p className="text-[10px] text-green-500 text-center py-4 font-bold">Tudo sob controle! ✅</p>
+              ) : (
+                orcamentosCriticos.slice(0, 3).map((orc, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{orc.emoji}</span>
+                      <span className="text-[11px] font-bold">{orc.categoria}</span>
+                    </div>
+                    <span className={cn("text-[11px] font-black", orc.pct >= 100 ? "text-red-400" : "text-orange-400")}>
+                      {orc.pct.toFixed(0)}%
+                    </span>
+                  </div>
+                ))
+              )}
+              <Link to="/dashboard/orcamentos">
+                <Button variant="ghost" className="w-full mt-2 text-[10px] font-black uppercase h-8">Ver Orçamentos</Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
