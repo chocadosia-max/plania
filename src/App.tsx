@@ -17,6 +17,7 @@ import Relatorios from "./pages/Relatorios";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +38,16 @@ const App = () => (
             <Route path="/dashboard/transacoes" element={<DashWrap><Transacoes /></DashWrap>} />
             <Route path="/dashboard/metas" element={<DashWrap><Metas /></DashWrap>} />
             <Route path="/dashboard/orcamentos" element={<DashWrap><Orcamentos /></DashWrap>} />
-            <Route path="/dashboard/investimentos" element={<DashWrap><Investimentos /></DashWrap>} />
+            <Route 
+              path="/dashboard/investimentos" 
+              element={
+                <DashWrap>
+                  <ErrorBoundary>
+                    <Investimentos />
+                  </ErrorBoundary>
+                </DashWrap>
+              } 
+            />
             <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
             <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
             

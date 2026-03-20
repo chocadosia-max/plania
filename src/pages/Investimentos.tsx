@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 /* --- TYPES --- */
 interface Asset {
@@ -47,7 +48,7 @@ const portfolioHistory = [
   { date: 'Mar 25', val: 47830, yield: 2.3 },
 ];
 
-const assets: Asset[] = [
+const initialAssets: Asset[] = [
   { 
     id: 1, name: "CDB Banco Inter 102%", type: 'Renda Fixa', value: 12400, yield: 843, yieldPct: 7.3, composition: 26, 
     startDate: '2024-01-10', contribution: 11557, expiry: '2026-01-10',
@@ -151,7 +152,7 @@ function FloatingParticles() {
 
 function AssetCard({ asset: a, delay }: { asset: Asset; delay: number }) {
   const [tickerKey, setTickerKey] = useState(0);
-  const Icon = typeIcons[a.type];
+  const Icon = typeIcons[a.type] || Briefcase;
   const isPositive = a.yieldPct > 0;
 
   useEffect(() => {
@@ -165,17 +166,17 @@ function AssetCard({ asset: a, delay }: { asset: Asset; delay: number }) {
       style={{ 
         animation: "reveal 0.6s cubic-bezier(0.16,1,0.3,1) both", 
         animationDelay: `${delay}ms`,
-        borderTop: `4px solid ${typeColors[a.type]}`
+        borderTop: `4px solid ${typeColors[a.type] || 'hsl(var(--primary))'}`
       }}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform", `bg-[${typeColors[a.type]}]`)} style={{ backgroundColor: typeColors[a.type] }}>
+          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform")} style={{ backgroundColor: typeColors[a.type] || 'hsl(var(--primary))' }}>
             <Icon className="w-5 h-5" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-foreground truncate max-w-[120px]">{a.name}</h4>
-            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter border-none px-0" style={{ color: typeColors[a.type] }}>
+            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter border-none px-0" style={{ color: typeColors[a.type] || 'hsl(var(--primary))' }}>
               {a.type}
             </Badge>
           </div>
@@ -187,52 +188,56 @@ function AssetCard({ asset: a, delay }: { asset: Asset; delay: number }) {
 
       <div className="space-y-1">
         <p className="text-xl font-black font-mono-financial text-foreground">
-          R$ {a.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          R$ {(a.value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </p>
         <div className={cn("flex items-center gap-1 text-xs font-bold", isPositive ? "text-green-500" : "text-red-400")}>
           {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
           <div key={tickerKey} className="animate-flip-ticker">
-            R$ {a.yield.toLocaleString('pt-BR')} ({a.yieldPct}%)
+            R$ {(a.yield ?? 0).toLocaleString('pt-BR')} ({a.yieldPct ?? 0}%)
           </div>
         </div>
       </div>
 
       <div className="h-[60px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={a.sparkline}>
-            <defs>
-              <linearGradient id={`grad-${a.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <Area 
-              type="monotone" 
-              dataKey="val" 
-              stroke={isPositive ? "#10b981" : "#ef4444"} 
-              strokeWidth={2} 
-              fill={`url(#grad-${a.id})`} 
-              animationDuration={1500}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {a.sparkline && a.sparkline.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={a.sparkline}>
+              <defs>
+                <linearGradient id={`grad-${a.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area 
+                type="monotone" 
+                dataKey="val" 
+                stroke={isPositive ? "#10b981" : "#ef4444"} 
+                strokeWidth={2} 
+                fill={`url(#grad-${a.id})`} 
+                animationDuration={1500}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full bg-muted/20 rounded flex items-center justify-center text-[10px] text-muted-foreground">Sem dados</div>
+        )}
       </div>
 
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-          <span>{a.composition}% da carteira</span>
+          <span>{a.composition ?? 0}% da carteira</span>
         </div>
         <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
           <div 
             className="h-full rounded-full transition-all duration-1000 ease-out"
-            style={{ width: `${a.composition}%`, backgroundColor: typeColors[a.type] }}
+            style={{ width: `${a.composition ?? 0}%`, backgroundColor: typeColors[a.type] || 'hsl(var(--primary))' }}
           />
         </div>
       </div>
 
       <div className="pt-2 border-t border-border/30 grid grid-cols-2 gap-2 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
-        <div>Início: {format(new Date(a.startDate), "dd/MM/yy")}</div>
-        <div className="text-right">Aporte: R$ {a.contribution.toLocaleString('pt-BR')}</div>
+        <div>Início: {a.startDate ? format(new Date(a.startDate), "dd/MM/yy") : '--'}</div>
+        <div className="text-right">Aporte: R$ {(a.contribution ?? 0).toLocaleString('pt-BR')}</div>
       </div>
     </div>
   );
@@ -242,6 +247,7 @@ export default function Investimentos() {
   const [period, setPeriod] = useState('6M');
   const [view, setView] = useState<'lista' | 'distribuicao' | 'performance'>('lista');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>(initialAssets);
 
   const handleSync = () => {
     setIsSyncing(true);
@@ -251,17 +257,24 @@ export default function Investimentos() {
     }, 1500);
   };
 
-  const totalInvested = assets.reduce((acc, a) => acc + a.contribution, 0);
-  const totalYield = 47830 - totalInvested;
-  const totalYieldPct = (totalYield / totalInvested) * 100;
+  const totalInvested = useMemo(() => (assets ?? []).reduce((acc, a) => acc + (a.contribution ?? 0), 0), [assets]);
+  const totalCurrentValue = 47830; // Mock value
+  const totalYield = totalCurrentValue - totalInvested;
+  const totalYieldPct = totalInvested > 0 ? (totalYield / totalInvested) * 100 : 0;
 
   const pieData = useMemo(() => {
     const groups: Record<string, number> = {};
-    assets.forEach(a => {
-      groups[a.type] = (groups[a.type] || 0) + a.value;
+    (assets ?? []).forEach(a => {
+      if (a.type) {
+        groups[a.type] = (groups[a.type] || 0) + (a.value ?? 0);
+      }
     });
     return Object.entries(groups).map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [assets]);
+
+  const sortedAssetsForPerformance = useMemo(() => {
+    return [...(assets ?? [])].sort((a, b) => (b.yieldPct ?? 0) - (a.yieldPct ?? 0));
+  }, [assets]);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-8 pb-20">
@@ -312,7 +325,7 @@ export default function Investimentos() {
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Patrimônio total investido</p>
               <h2 className="text-5xl sm:text-6xl font-black font-mono-financial text-white tracking-tighter">
-                <AnimatedCounter value={47830} />
+                <AnimatedCounter value={totalCurrentValue} />
               </h2>
             </div>
 
@@ -394,7 +407,7 @@ export default function Investimentos() {
 
         {view === 'lista' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.map((a, i) => (
+            {(assets ?? []).map((a, i) => (
               <AssetCard key={a.id} asset={a} delay={600 + i * 80} />
             ))}
           </div>
@@ -403,35 +416,39 @@ export default function Investimentos() {
         {view === 'distribuicao' && (
           <div className="glass-card rounded-3xl p-8 flex flex-col lg:flex-row items-center gap-12 animate-reveal">
             <div className="relative w-64 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
-                  <Pie
-                    data={pieData}
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={5}
-                    dataKey="value"
-                    animationDuration={1500}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={typeColors[entry.name]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </RePieChart>
-              </ResponsiveContainer>
+              {pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RePieChart>
+                    <Pie
+                      data={pieData}
+                      innerRadius={80}
+                      outerRadius={110}
+                      paddingAngle={5}
+                      dataKey="value"
+                      animationDuration={1500}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={typeColors[entry.name] || 'hsl(var(--primary))'} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-full rounded-full border-4 border-dashed border-muted flex items-center justify-center text-xs text-muted-foreground">Sem dados</div>
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total</p>
-                <p className="text-xl font-black">R$ 47.830</p>
+                <p className="text-xl font-black">R$ {totalCurrentValue.toLocaleString('pt-BR')}</p>
               </div>
             </div>
             <div className="flex-1 grid grid-cols-2 gap-4">
               {pieData.map((item) => (
                 <div key={item.name} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/40 hover:border-primary/30 transition-all group cursor-default">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColors[item.name] }} />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColors[item.name] || 'hsl(var(--primary))' }} />
                   <div className="flex-1">
                     <p className="text-xs font-bold text-foreground">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">R$ {item.value.toLocaleString('pt-BR')} ({((item.value / 47830) * 100).toFixed(1)}%)</p>
+                    <p className="text-[10px] text-muted-foreground">R$ {(item.value ?? 0).toLocaleString('pt-BR')} ({totalCurrentValue > 0 ? ((item.value / totalCurrentValue) * 100).toFixed(1) : 0}%)</p>
                   </div>
                 </div>
               ))}
@@ -442,22 +459,26 @@ export default function Investimentos() {
         {view === 'performance' && (
           <div className="glass-card rounded-3xl p-8 animate-reveal">
             <div className="h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={assets.sort((a, b) => b.yieldPct - a.yieldPct)} layout="vertical" margin={{ left: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" opacity={0.2} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} width={120} />
-                  <Tooltip 
-                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}
-                  />
-                  <Bar dataKey="yieldPct" radius={[0, 4, 4, 0]} animationDuration={1500}>
-                    {assets.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.yieldPct > 0 ? '#10b981' : '#ef4444'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {sortedAssetsForPerformance.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sortedAssetsForPerformance} layout="vertical" margin={{ left: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" opacity={0.2} />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} width={120} />
+                    <Tooltip 
+                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                      contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12 }}
+                    />
+                    <Bar dataKey="yieldPct" radius={[0, 4, 4, 0]} animationDuration={1500}>
+                      {sortedAssetsForPerformance.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={(entry.yieldPct ?? 0) > 0 ? '#10b981' : '#ef4444'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-muted-foreground">Nenhum dado de performance</div>
+              )}
             </div>
           </div>
         )}
@@ -519,20 +540,20 @@ export default function Investimentos() {
             <p className="text-xs font-bold text-primary">Total ano: R$ 12.400</p>
           </div>
           <div className="space-y-3">
-            {assets.slice(0, 5).map((a, i) => (
+            {(assets ?? []).slice(0, 5).map((a, i) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: typeColors[a.type] }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: typeColors[a.type] || 'hsl(var(--primary))' }}>
                     <Coins className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-foreground">{a.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{format(new Date(a.startDate), "dd MMM yyyy")}</p>
+                    <p className="text-[10px] text-muted-foreground">{a.startDate ? format(new Date(a.startDate), "dd MMM yyyy") : '--'}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-black text-foreground">R$ {(a.contribution / 10).toFixed(2)}</p>
-                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-none" style={{ backgroundColor: `${typeColors[a.type]}20`, color: typeColors[a.type] }}>
+                  <p className="text-xs font-black text-foreground">R$ {((a.contribution ?? 0) / 10).toFixed(2)}</p>
+                  <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-none" style={{ backgroundColor: `${typeColors[a.type] || 'hsl(var(--primary))'}20`, color: typeColors[a.type] || 'hsl(var(--primary))' }}>
                     {a.type}
                   </Badge>
                 </div>
@@ -564,7 +585,7 @@ function MetricCard({ label, value, subValue, icon: Icon, color, bg, delay, isDa
       <div>
         <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">{label}</p>
         <h3 className="text-xl font-black font-mono-financial text-foreground">
-          {isDate ? "290 dias" : <AnimatedCounter value={value} />}
+          {isDate ? "290 dias" : <AnimatedCounter value={value ?? 0} />}
         </h3>
       </div>
     </div>
