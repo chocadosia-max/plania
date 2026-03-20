@@ -12,6 +12,7 @@ import Metas from "./pages/Metas";
 import Themes from "./pages/Themes";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             
             {/* Rotas do Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
