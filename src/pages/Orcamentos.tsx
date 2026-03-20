@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { 
   Plus, ChevronLeft, ChevronRight, AlertCircle, 
   TrendingUp, Lightbulb, CheckCircle2, MoreVertical,
@@ -17,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 /* --- TYPES --- */
 interface Budget {
@@ -37,32 +37,39 @@ const initialBudgets: Budget[] = [
   { id: 5, cat: "Saúde", emoji: "💊", limit: 300, spent: 120, color: "hsl(var(--chart-5))" },
 ];
 
+const weeklyData = [
+  { name: 'Sem 1', orcado: 1200, gasto: 950 },
+  { name: 'Sem 2', orcado: 1200, gasto: 1100 },
+  { name: 'Sem 3', orcado: 1200, gasto: 1350 },
+  { name: 'Sem 4', orcado: 1200, gasto: 800 },
+];
+
 /* --- COMPONENTS --- */
 
 function GaugeChart({ percent }: { percent: number }) {
   const deg = Math.min((percent / 100) * 180 - 90, 90);
   
   return (
-    <div className="relative w-48 h-24 overflow-hidden flex items-end justify-center">
+    <div className="relative w-56 h-28 overflow-hidden flex items-end justify-center">
       {/* Background Arc */}
-      <div className="absolute w-48 h-48 rounded-full border-[12px] border-muted/20 top-0" />
+      <div className="absolute w-56 h-56 rounded-full border-[14px] border-muted/20 top-0" />
       {/* Colored Zones */}
-      <div className="absolute w-48 h-48 rounded-full border-[12px] border-transparent border-t-green-500/40 border-l-green-500/40 top-0 rotate-[-45deg]" />
-      <div className="absolute w-48 h-48 rounded-full border-[12px] border-transparent border-t-yellow-500/40 top-0 rotate-[45deg]" />
-      <div className="absolute w-48 h-48 rounded-full border-[12px] border-transparent border-t-red-500/40 border-r-red-500/40 top-0 rotate-[135deg]" />
+      <div className="absolute w-56 h-56 rounded-full border-[14px] border-transparent border-t-green-500/40 border-l-green-500/40 top-0 rotate-[-45deg]" />
+      <div className="absolute w-56 h-56 rounded-full border-[14px] border-transparent border-t-yellow-500/40 top-0 rotate-[45deg]" />
+      <div className="absolute w-56 h-56 rounded-full border-[14px] border-transparent border-t-red-500/40 border-r-red-500/40 top-0 rotate-[135deg]" />
       
       {/* Needle */}
       <div 
-        className="absolute bottom-0 w-1 h-20 bg-foreground origin-bottom transition-transform duration-1000 ease-out z-10"
-        style={{ transform: `rotate(${deg}deg)`, animation: "gauge-needle 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }}
+        className="absolute bottom-0 w-1 h-24 bg-foreground origin-bottom transition-transform duration-1000 ease-out z-10"
+        style={{ transform: `rotate(${deg}deg)`, animation: "gauge-needle 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" } as any}
       >
         <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-foreground" />
       </div>
       
       {/* Center Info */}
       <div className="absolute bottom-0 text-center z-20">
-        <span className="text-3xl font-black font-mono-financial">{percent}%</span>
-        <p className="text-[8px] uppercase tracking-widest text-muted-foreground font-bold">Utilizado</p>
+        <span className="text-4xl font-black font-mono-financial">{percent}%</span>
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Utilizado</p>
       </div>
     </div>
   );
@@ -82,7 +89,7 @@ function BudgetCard({ budget: b, delay }: { budget: Budget; delay: number }) {
         animation: "reveal 0.6s cubic-bezier(0.16,1,0.3,1) both", 
         animationDelay: `${delay}ms`,
         boxShadow: `0 10px 30px -10px ${barColor.replace('bg-', 'hsl(var(--')}/0.2)`
-      }}
+      } as any}
     >
       {/* Left Border Accent */}
       <div className={cn("absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity", barColor)} />
@@ -159,15 +166,20 @@ function BudgetCard({ budget: b, delay }: { budget: Budget; delay: number }) {
 export default function Orcamentos() {
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [view, setView] = useState<'cards' | 'comparativo'>('cards');
+  const [daysLeft, setDaysLeft] = useState(18);
 
   const totalLimit = budgets.reduce((acc, b) => acc + b.limit, 0);
   const totalSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
   const totalPct = Math.round((totalSpent / totalLimit) * 100);
 
+  const healthStatus = totalPct < 70 ? 'saudavel' : totalPct < 90 ? 'atencao' : 'critico';
+
   const alerts = [
     { type: 'critical', msg: "Alimentação estourou o limite em R$ 40", icon: AlertCircle, color: "bg-red-400/10 text-red-400" },
     { type: 'warning', msg: "Lazer está em 87% do limite", icon: AlertCircle, color: "bg-yellow-500/10 text-yellow-500" },
     { type: 'tip', msg: "Seu gasto com Transporte caiu 15% este mês. Bom trabalho!", icon: Lightbulb, color: "bg-primary/10 text-primary" },
+    { type: 'positive', msg: "Saúde está R$ 120 abaixo do orçado. Você pode realocar esse valor.", icon: CheckCircle2, color: "bg-green-500/10 text-green-500" },
   ];
 
   return (
@@ -178,7 +190,9 @@ export default function Orcamentos() {
           <h1 className="text-4xl font-black font-sora text-foreground tracking-tight">Orçamentos</h1>
           <div className="flex items-center gap-3">
             <p className="text-sm text-muted-foreground">
-              Março 2026 · <span className="text-primary font-bold">11 dias restantes</span>
+              Março 2026 · <span className={cn("font-bold", daysLeft < 7 ? "text-red-400" : daysLeft < 15 ? "text-yellow-500" : "text-green-500")}>
+                {daysLeft} dias restantes no mês
+              </span>
             </p>
           </div>
         </div>
@@ -188,6 +202,15 @@ export default function Orcamentos() {
             <span className="px-4 py-1 text-xs font-black flex items-center">Março 2026</span>
             <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="w-4 h-4" /></Button>
           </div>
+          
+          <div className={cn(
+            "px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all",
+            healthStatus === 'saudavel' ? "bg-green-500/10 text-green-500" : healthStatus === 'atencao' ? "bg-yellow-500/10 text-yellow-500" : "bg-red-400/10 text-red-400 animate-pulse"
+          )}>
+            <div className={cn("w-2 h-2 rounded-full", healthStatus === 'saudavel' ? "bg-green-500" : healthStatus === 'atencao' ? "bg-yellow-500" : "bg-red-400")} />
+            {healthStatus === 'saudavel' ? "Orçamento saudável" : healthStatus === 'atencao' ? "Atenção necessária" : "Limite crítico"}
+          </div>
+
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 rounded-xl bg-primary shadow-lg shadow-primary/20">
@@ -204,7 +227,7 @@ export default function Orcamentos() {
       </div>
 
       {/* PANORAMIC PANEL */}
-      <div className="relative rounded-3xl p-[1px] bg-gradient-to-br from-primary/40 via-border to-secondary/40 animate-reveal" style={{ animationDelay: '100ms' }}>
+      <div className="relative rounded-3xl p-[1px] bg-gradient-to-br from-primary/40 via-border to-secondary/40 animate-reveal" style={{ animationDelay: '100ms' } as any}>
         <div className="bg-card/90 backdrop-blur-2xl rounded-[23px] p-8 mesh-gradient overflow-hidden relative">
           <div className="absolute inset-0 bg-primary/5 opacity-50" />
           
@@ -215,31 +238,45 @@ export default function Orcamentos() {
             {/* Summary */}
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-8 w-full">
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Orçamento Total</p>
-                <h3 className="text-3xl font-black font-mono-financial">R$ {totalLimit.toLocaleString('pt-BR')}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Resumo do mês</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Orçamento total</span>
+                    <span className="font-bold font-mono-financial">R$ {totalLimit.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Total gasto</span>
+                    <span className={cn("font-bold font-mono-financial", totalPct > 90 ? "text-red-400" : "text-foreground")}>
+                      R$ {totalSpent.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Saldo disponível</span>
+                    <span className={cn("font-bold font-mono-financial", totalLimit - totalSpent < 0 ? "text-red-400" : "text-green-500")}>
+                      R$ {(totalLimit - totalSpent).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Gasto</p>
-                <h3 className={cn("text-3xl font-black font-mono-financial", totalPct > 90 ? "text-red-400" : "text-foreground")}>
-                  R$ {totalSpent.toLocaleString('pt-BR')}
-                </h3>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Saldo Disponível</p>
-                <h3 className="text-3xl font-black font-mono-financial text-green-500">
-                  R$ {(totalLimit - totalSpent).toLocaleString('pt-BR')}
-                </h3>
-              </div>
-            </div>
 
-            {/* Health Badge */}
-            <div className="shrink-0">
-              <div className={cn(
-                "px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-xl",
-                totalPct < 70 ? "bg-green-500/10 text-green-500" : totalPct < 90 ? "bg-yellow-500/10 text-yellow-500" : "bg-red-400/10 text-red-400 animate-pulse"
-              )}>
-                <div className={cn("w-3 h-3 rounded-full", totalPct < 70 ? "bg-green-500" : totalPct < 90 ? "bg-yellow-500" : "bg-red-400")} />
-                {totalPct < 70 ? "Orçamento Saudável" : totalPct < 90 ? "Atenção Necessária" : "Limite Crítico"}
+              {/* Weekly Chart */}
+              <div className="sm:col-span-2 h-32 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyData} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.2} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                    <Tooltip 
+                      contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }}
+                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                    />
+                    <Bar dataKey="orcado" fill="hsl(var(--muted-foreground))" fillOpacity={0.2} radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="gasto" radius={[2, 2, 0, 0]}>
+                      {weeklyData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.gasto > entry.orcado ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
@@ -247,37 +284,84 @@ export default function Orcamentos() {
       </div>
 
       {/* ALERTS */}
-      <div className="space-y-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {alerts.map((alert, i) => (
           <div 
             key={i} 
-            className={cn("flex items-center justify-between p-4 rounded-2xl animate-slide-down", alert.color)}
-            style={{ animationDelay: `${400 + i * 100}ms` }}
+            className={cn("flex flex-col justify-between p-4 rounded-2xl animate-slide-down group relative overflow-hidden", alert.color)}
+            style={{ animationDelay: `${400 + i * 100}ms` } as any}
           >
-            <div className="flex items-center gap-3">
-              <alert.icon className="w-5 h-5" />
-              <p className="text-sm font-bold">{alert.msg}</p>
+            <div className="flex items-start gap-3">
+              <alert.icon className="w-5 h-5 shrink-0 mt-0.5" />
+              <p className="text-xs font-bold leading-relaxed">{alert.msg}</p>
             </div>
-            <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="mt-3 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 w-fit">
               Ver detalhes <ArrowRight className="ml-2 w-3 h-3" />
             </Button>
+            <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <X className="w-3 h-3" />
+            </button>
           </div>
         ))}
       </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map((b, i) => (
-          <BudgetCard key={b.id} budget={b} delay={600 + i * 80} />
-        ))}
-      </div>
-
-      {/* ACTIONS FOOTER */}
-      <div className="flex justify-center pt-8">
-        <Button variant="outline" className="rounded-xl gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5">
-          <RefreshCw className="w-4 h-4" /> Realocar saldo entre categorias
+      {/* VIEW TOGGLE */}
+      <div className="flex items-center justify-between">
+        <div className="flex p-1 bg-muted rounded-xl">
+          <button 
+            onClick={() => setView('cards')}
+            className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all", view === 'cards' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+          >
+            📊 Cards
+          </button>
+          <button 
+            onClick={() => setView('comparativo')}
+            className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all", view === 'comparativo' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+          >
+            📈 Comparativo
+          </button>
+        </div>
+        <Button variant="outline" className="rounded-xl gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5 text-xs">
+          <RefreshCw className="w-3.5 h-3.5" /> Realocar saldo
         </Button>
       </div>
+
+      {/* GRID / COMPARATIVO */}
+      {view === 'cards' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {budgets.map((b, i) => (
+            <BudgetCard key={b.id} budget={b} delay={600 + i * 80} />
+          ))}
+        </div>
+      ) : (
+        <div className="glass-card rounded-2xl p-8 animate-reveal">
+          <div className="space-y-6">
+            {budgets.sort((a, b) => (b.spent/b.limit) - (a.spent/a.limit)).map((b, i) => {
+              const pct = Math.round((b.spent / b.limit) * 100);
+              return (
+                <div key={b.id} className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <div className="flex items-center gap-2">
+                      <span>{b.emoji}</span>
+                      <span>{b.cat}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-muted-foreground">R$ {b.spent.toLocaleString('pt-BR')} / R$ {b.limit.toLocaleString('pt-BR')}</span>
+                      <span className={cn(pct > 100 ? "text-red-400" : "text-primary")}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div className="h-3 w-full bg-muted/30 rounded-full overflow-hidden">
+                    <div 
+                      className={cn("h-full rounded-full transition-all duration-1000", pct > 100 ? "bg-red-400" : pct > 85 ? "bg-yellow-500" : "bg-primary")}
+                      style={{ width: `${Math.min(pct, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -355,5 +439,11 @@ function BudgetModal({ onSave }: { onSave: (b: Budget) => void }) {
         </Button>
       </DialogFooter>
     </DialogContent>
+  );
+}
+
+function X({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
   );
 }
