@@ -52,21 +52,24 @@ const Dashboard = () => {
 
   const dados = useDadosFinanceiros(periodo);
 
-  // Debug para ver o que está no storage
+  // Debug para ver o que está no plania-data
   useEffect(() => {
-    console.log("=== DEBUG: DADOS NO STORAGE ===");
-    for (let i = 0; i < localStorage.length; i++) {
-      const chave = localStorage.key(i);
-      if (chave?.includes("plania") || chave?.includes("transacoes")) {
-        const val = localStorage.getItem(chave);
-        try {
-          const parsed = JSON.parse(val || "");
-          if (Array.isArray(parsed)) {
-            console.log(`Chave: ${chave} | Itens: ${parsed.length}`);
-          } else if (parsed && typeof parsed === 'object') {
-            console.log(`Chave: ${chave} | Objeto detectado`);
+    const raw = localStorage.getItem("plania-data");
+    if (raw) {
+      try {
+        const obj = JSON.parse(raw);
+        console.log("=== plania-data DEBUG ===");
+        console.log("Chaves:", Object.keys(obj));
+        Object.entries(obj).forEach(([k, v]) => {
+          if (Array.isArray(v)) {
+            console.log(`  ${k}: ${v.length} items`);
+            if (v.length > 0) console.log("  Exemplo:", v[0]);
+          } else {
+            console.log(`  ${k}:`, typeof v, v);
           }
-        } catch {}
+        });
+      } catch (e) {
+        console.error("Erro ao parsear plania-data:", e);
       }
     }
   }, []);

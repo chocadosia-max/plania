@@ -61,19 +61,33 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem("plania_dividas", JSON.stringify(dividas));
     localStorage.setItem("plania_clientes", JSON.stringify(clientes));
     localStorage.setItem("plania_tabs", JSON.stringify(dynamicTabs));
+    
+    // Sincroniza com plania-data para o hook useDadosFinanceiros
+    localStorage.setItem("plania-data", JSON.stringify({
+      transacoes: transactions,
+      ultimaAtualizacao: new Date().toISOString()
+    }));
   }, [transactions, goals, budgets, investments, dividas, clientes, dynamicTabs]);
 
   const importData = (data: any) => {
-    setTransactions(data.transacoes || []);
+    const transacoesProcessadas = data.transacoes || [];
+    setTransactions(transacoesProcessadas);
     setDividas(data.dividas || []);
     setClientes(data.clientes || []);
     
+    // Salva em ambas as chaves para garantir sincronia
+    localStorage.setItem("plania-data", JSON.stringify({
+      transacoes: transacoesProcessadas,
+      ultimaAtualizacao: new Date().toISOString()
+    }));
+    localStorage.setItem("plania_transacoes", JSON.stringify(transacoesProcessadas));
+
     const newTabs: DynamicTab[] = [];
     if (data.dividas?.length > 0) newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
     if (data.clientes?.length > 0) newTabs.push({ id: 'clientes', label: 'Clientes', icon: '👥', path: '/dashboard/clientes', isNew: true });
     
     setDynamicTabs(newTabs);
-    toast.success("Planilha importada com sucesso! 🚀");
+    toast.success(`Importação concluída: ${transacoesProcessadas.length} transações sincronizadas! 🚀`);
   };
 
   const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
