@@ -84,13 +84,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
       }
     });
-
-    localStorage.setItem("plania-data", JSON.stringify({
-      transacoes: transactions,
-      dividas,
-      clientes,
-      ultimaAtualizacao: isValidDate(lastSync) ? lastSync?.toISOString() : new Date().toISOString()
-    }));
   }, [transactions, goals, budgets, investments, dividas, clientes, dynamicTabs, lastSync]);
 
   const sync = async () => {
@@ -116,7 +109,8 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       categoria: t.categoria || t.category || "Outros",
       data: t.data || t.date || new Date().toLocaleDateString('pt-BR'),
       mes: t.mes,
-      ano: t.ano || 2026
+      ano: t.ano || 2026,
+      dadosOriginais: t.dadosOriginais
     }));
 
     setTransactions(normalized);
@@ -132,13 +126,18 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     setDynamicTabs(newTabs);
 
-    // Calcula resumo para o Assistente IA
+    // Persistência imediata para evitar race conditions
+    localStorage.setItem("plania_transacoes", JSON.stringify(normalized));
+    localStorage.setItem("plania_dividas", JSON.stringify(data.dividas || []));
+    localStorage.setItem("plania_clientes", JSON.stringify(data.clientes || []));
+    localStorage.setItem("plania_tabs", JSON.stringify(newTabs));
+
     const income = normalized.filter(t => t.tipo === 'receita').reduce((s, t) => s + Math.abs(t.valor), 0);
     const expenses = normalized.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Math.abs(t.valor), 0);
     
     localStorage.setItem("plania-adapted-summary", JSON.stringify({
       count: normalized.length,
-      income: income / 6, // Média estimada
+      income: income / 6,
       expenses: expenses / 6,
       savings: (income - expenses) / 6
     }));

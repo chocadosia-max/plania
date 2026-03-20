@@ -70,27 +70,45 @@ export async function processarPlanilhaEspecializada(file: File) {
           const val = String(cell || "").toLowerCase().trim();
           if (val.length < 2) return;
 
-          // Ignora cabeçalhos e palavras de controle
-          const palavrasIgnorar = ['tipo', 'descrição', 'valor', 'total', 'saldo', 'entradas', 'saídas', 'vencimento', 'status', 'categoria'];
-          if (palavrasIgnorar.some(k => val === k || val.startsWith(k + ' '))) return;
+          // Filtro rigoroso de cabeçalhos e resumos
+          const palavrasIgnorar = [
+            'tipo', 'descrição', 'valor', 'total', 'saldo', 'entradas', 'saídas', 
+            'vencimento', 'status', 'categoria', 'subtotal', 'resumo', 'balanço'
+          ];
+          if (palavrasIgnorar.some(k => val === k || val === k + 's' || val.startsWith(k + ':'))) return;
 
-          const valorCandidato = parseMoeda(row[colIndex + 1]) || parseMoeda(row[colIndex + 2]);
+          // Tenta encontrar o valor nas colunas adjacentes
+          let valorCandidato = 0;
+          let foundAt = -1;
           
-          if (valorCandidato > 0) {
-            // Lógica de detecção de receita baseada em palavras-chave ou posição da coluna (geralmente receitas ficam à direita ou em colunas específicas)
-            const keywordsReceita = ['salário', 'receita', 'venda', 'pix recebido', 'transferência recebida', 'rendimento', 'bônus'];
+          // Procura valor num raio de 3 colunas
+          for (let offset = 1; offset <= 3; offset++) {
+            const v = parseMoeda(row[colIndex + offset]);
+            if (v !== 0) {
+              valorCandidato = v;
+              foundAt = colIndex + offset;
+              break;
+            }
+          }
+          
+          if (valorCandidato !== 0) {
+            const keywordsReceita = ['salário', 'receita', 'venda', 'pix recebido', 'transferência recebida', 'rendimento', 'bônus', 'entrada'];
             const isReceita = keywordsReceita.some(k => val.includes(k)) || colIndex > 10;
             
             transacoesAba.push({
               id: `imp_${nomeAba}_${rowIndex}_${colIndex}`,
               descricao: String(cell).trim(),
-              valor: isReceita ? valorCandidato : -valorCandidato,
+              valor: isReceita ? Math.abs(valorCandidato) : -Math.abs(valorCandidato),
               tipo: isReceita ? 'receita' : 'gasto',
               categoria: isReceita ? 'Receita' : 'Geral',
               data: `01/${String(periodo.mes + 1).padStart(2, '0')}/${periodo.ano}`,
               mes: periodo.mes,
-              ano: periodo.ano
+              ano: periodo.ano,
+              dadosOriginais: row // Guarda a linha toda para o modal de detalhes
             });
+            
+            // Limpa o valor da linha para não processar a mesma transação se houver duplicidade de nomes
+            row[foundAt] = null;
           }
         });
       });
@@ -109,6 +127,7 @@ export async function processarPlanilhaEspecializada(file: File) {
       }
     }
 
+    // Processamento de Dívidas e Clientes
     if (normAba.includes('DIVIDA') || normAba.includes('DÍVIDA')) {
       rows.forEach((row, i) => {
         if (row && row.length > 2 && i > 0) {
