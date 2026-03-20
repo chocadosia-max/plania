@@ -2,39 +2,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Search, Filter, Plus, Upload, ShoppingCart, Car, Utensils, 
-  Heart, Gamepad2, BookOpen, Home, Briefcase, Plane, Gift,
-  ArrowUpRight, ArrowDownRight, Wallet, Hash, MoreHorizontal,
-  Edit2, Copy, Trash2, X, Calendar as CalendarIcon, ChevronDown,
-  Check, Loader2, Camera, Sparkles
+  Plus, Edit2, Copy, Trash2, Search, Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-
-/* --- TYPES --- */
-interface Transaction {
-  id: number;
-  desc: string;
-  value: number;
-  cat: string;
-  date: string;
-  type: 'receita' | 'gasto';
-  tags?: string[];
-}
-
-const initialTransactions: Transaction[] = [
-  { id: 1, desc: "Salário", value: 5600, cat: "Trabalho", date: "2026-03-20", type: 'receita' },
-  { id: 2, desc: "Aluguel", value: 1800, cat: "Moradia", date: "2026-03-20", type: 'gasto', tags: ['Recorrente'] },
-  { id: 3, desc: "Supermercado", value: 342.5, cat: "Mercado", date: "2026-03-19", type: 'gasto' },
-];
+import { usePlanIA, Transaction } from "@/contexts/PlanIAContext";
 
 const categories = [
   { id: "Mercado", emoji: "🛒", color: "bg-blue-500" },
@@ -50,34 +26,30 @@ const categories = [
 ];
 
 export default function Transacoes() {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const { transactions, addTransaction, deleteTransaction, updateTransaction } = usePlanIA();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [search, setSearch] = useState("");
 
-  const handleEdit = (t: Transaction) => {
-    setEditingTransaction(t);
-    setIsDrawerOpen(true);
-  };
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => 
+      t.desc.toLowerCase().includes(search.toLowerCase()) || 
+      t.cat.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [transactions, search]);
 
-  const handleDuplicate = (t: Transaction) => {
-    setEditingTransaction({ ...t, id: Date.now(), date: new Date().toISOString().split('T')[0] });
-    setIsDrawerOpen(true);
-  };
+  const totals = useMemo(() => {
+    const receitas = transactions.filter(t => t.type === 'receita').reduce((acc, t) => acc + t.value, 0);
+    const gastos = transactions.filter(t => t.type === 'gasto').reduce((acc, t) => acc + Math.abs(t.value), 0);
+    return { receitas, gastos, saldo: receitas - gastos };
+  }, [transactions]);
 
-  const handleDelete = (id: number) => {
-    const deleted = transactions.find(t => t.id === id);
-    setTransactions(prev => prev.filter(t => t.id !== id));
-    toast.error(`🗑️ Removida: ${deleted?.desc}`, {
-      action: { label: "Desfazer →", onClick: () => setTransactions(prev => [...prev, deleted!]) }
-    });
-  };
-
-  const handleSave = (t: Transaction) => {
-    if (editingTransaction && transactions.find(item => item.id === editingTransaction.id)) {
-      setTransactions(prev => prev.map(item => item.id === editingTransaction.id ? t : item));
-      toast.success("✅ Transação atualizada com sucesso");
+  const handleSave = (t: any) => {
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, t);
+      toast.success("✅ Transação atualizada");
     } else {
-      setTransactions([t, ...transactions]);
+      addTransaction(t);
       toast.success("✅ Transação registrada! ✨");
     }
     setIsDrawerOpen(false);
@@ -86,55 +58,84 @@ export default function Transacoes() {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8 pb-32">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <h1 className="text-4xl font-black font-sora">Transações</h1>
-        <Sheet open={isDrawerOpen} onOpenChange={(o) => { setIsDrawerOpen(o); if (!o) setEditingTransaction(null); }}>
-          <SheetTrigger asChild>
-            <Button className="gap-2 rounded-xl bg-primary shadow-lg shadow-primary/20"><Plus className="w-4 h-4" /> Nova transação</Button>
-          </SheetTrigger>
-          <TransactionDrawer initialData={editingTransaction} onSave={handleSave} />
-        </Sheet>
+        
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar transação..." 
+              className="pl-9 rounded-xl bg-muted/50 border-none"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Sheet open={isDrawerOpen} onOpenChange={(o) => { setIsDrawerOpen(o); if (!o) setEditingTransaction(null); }}>
+            <SheetTrigger asChild>
+              <Button className="gap-2 rounded-xl bg-primary shadow-lg shadow-primary/20"><Plus className="w-4 h-4" /> Nova transação</Button>
+            </SheetTrigger>
+            <TransactionDrawer initialData={editingTransaction} onSave={handleSave} />
+          </Sheet>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="glass-card rounded-2xl p-5 border-green-500/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Receitas</p>
+          <p className="text-2xl font-black text-green-500 font-mono-financial">R$ {totals.receitas.toLocaleString('pt-BR')}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-5 border-red-400/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Gastos</p>
+          <p className="text-2xl font-black text-red-400 font-mono-financial">R$ {totals.gastos.toLocaleString('pt-BR')}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-5 border-primary/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Saldo</p>
+          <p className="text-2xl font-black text-foreground font-mono-financial">R$ {totals.saldo.toLocaleString('pt-BR')}</p>
+        </div>
       </div>
 
       <div className="space-y-2">
-        {transactions.map((t, i) => (
-          <TransactionItem key={t.id} transaction={t} onEdit={() => handleEdit(t)} onDuplicate={() => handleDuplicate(t)} onDelete={() => handleDelete(t.id)} delay={i * 40} />
-        ))}
+        {filteredTransactions.length === 0 ? (
+          <div className="text-center py-20 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">Nenhuma transação encontrada.</p>
+          </div>
+        ) : (
+          filteredTransactions.map((t, i) => (
+            <TransactionItem 
+              key={t.id} 
+              transaction={t} 
+              onEdit={() => { setEditingTransaction(t); setIsDrawerOpen(true); }} 
+              onDelete={() => deleteTransaction(t.id)} 
+              delay={i * 30} 
+            />
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function TransactionItem({ transaction: t, onEdit, onDuplicate, onDelete, delay }: any) {
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+function TransactionItem({ transaction: t, onEdit, onDelete, delay }: any) {
   const cat = categories.find(c => c.id === t.cat) || categories[categories.length - 1];
-
-  if (isConfirmingDelete) {
-    return (
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-destructive/10 border border-destructive/20 animate-reveal">
-        <p className="text-sm font-bold text-destructive">Excluir esta transação?</p>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setIsConfirmingDelete(false)}>Cancelar</Button>
-          <Button variant="destructive" size="sm" onClick={onDelete}>Confirmar</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/40 transition-all duration-300 animate-reveal" style={{ animationDelay: `${delay}ms` }}>
       <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm", cat.color)}>{cat.emoji}</div>
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-bold text-foreground truncate">{t.desc}</h4>
-        <p className="text-[11px] text-muted-foreground">{t.cat}</p>
+        <p className="text-[11px] text-muted-foreground">{t.cat} · {t.date}</p>
       </div>
       <div className={cn("text-sm font-black font-mono-financial", t.type === 'receita' ? "text-green-500" : "text-red-400")}>
-        {t.type === 'receita' ? '+' : '-'} R$ {t.value.toLocaleString('pt-BR')}
+        {t.type === 'receita' ? '+' : '-'} R$ {Math.abs(t.value).toLocaleString('pt-BR')}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onEdit}><Edit2 className="w-3.5 h-3.5" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onDuplicate}><Copy className="w-3.5 h-3.5" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => setIsConfirmingDelete(true)}><Trash2 className="w-3.5 h-3.5" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /></Button>
       </div>
     </div>
   );
@@ -172,7 +173,7 @@ function TransactionDrawer({ initialData, onSave }: any) {
             </div>
           </div>
         </div>
-        <Button size="lg" className={cn("w-full h-16 rounded-2xl text-lg font-black shadow-2xl", type === 'receita' ? "bg-green-500 hover:bg-green-600" : "bg-red-400 hover:bg-red-500")} onClick={() => onSave({ id: initialData?.id || Date.now(), desc, value: parseFloat(value), cat, date: initialData?.date || new Date().toISOString().split('T')[0], type })} disabled={!value || !desc}>{initialData ? "Salvar alterações ✓" : `Registrar ${type === 'receita' ? 'Receita' : 'Gasto'}`}</Button>
+        <Button size="lg" className={cn("w-full h-16 rounded-2xl text-lg font-black shadow-2xl", type === 'receita' ? "bg-green-500 hover:bg-green-600" : "bg-red-400 hover:bg-red-500")} onClick={() => onSave({ desc, value: parseFloat(value), cat, date: initialData?.date || new Date().toISOString().split('T')[0], type })} disabled={!value || !desc}>{initialData ? "Salvar alterações ✓" : `Registrar ${type === 'receita' ? 'Receita' : 'Gasto'}`}</Button>
       </div>
     </SheetContent>
   );
