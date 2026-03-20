@@ -1,32 +1,13 @@
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import {
   ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, CreditCard, PiggyBank,
   ShoppingCart, X, CheckCircle2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { QuickLaunchBar } from "@/components/QuickLaunchBar";
 import { usePlanIA } from "@/contexts/PlanIAContext";
-
-function getIconeCategoria(categoria: string) {
-  const icones: Record<string, string> = {
-    "alimentação": "🍕", "mercado": "🛒", "transporte": "🚗", "moradia": "🏠",
-    "saúde": "💊", "lazer": "🎮", "educação": "📚", "receita": "💚", "salário": "💰"
-  };
-  const cat = (categoria || "").toLowerCase();
-  for (const [chave, icone] of Object.entries(icones)) {
-    if (cat.includes(chave)) return icone;
-  }
-  return "📦";
-}
+import { getIconeTransacao } from "./Transacoes";
 
 function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, positive, accentColor, sparkData, tooltip, delay, link }: any) {
   const [val, setVal] = useState(0);
@@ -108,7 +89,19 @@ const Dashboard = () => {
         <div className="space-y-1">
           {transactions.slice(0, 5).map((t, i) => (
             <div key={t.id || i} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/30 transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center text-xl">{getIconeCategoria(t.categoria)}</div>
+              <div style={{
+                width: 36, height: 36,
+                borderRadius: "50%",
+                background: (t.tipo === "receita" || t.valor > 0) ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flexShrink: 0,
+                border: `1px solid ${(t.tipo === "receita" || t.valor > 0) ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`
+              }}>
+                {getIconeTransacao(t.descricao, t.tipo)}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{t.descricao}</p>
                 <p className="text-[11px] text-muted-foreground">{t.categoria} · {t.data}</p>
