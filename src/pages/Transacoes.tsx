@@ -38,16 +38,16 @@ export default function Transacoes() {
     recorrente: false
   });
 
-  // Debug temporário para ver o localStorage
+  // Debug de dados brutos importados
   useEffect(() => {
-    const chaves = ["plania_transacoes", "transacoes", "transactions", "plania_transactions"];
-    console.log("--- DEBUG LOCALSTORAGE ---");
-    chaves.forEach(chave => {
-      const item = localStorage.getItem(chave);
-      if (item) {
-        console.log(`Chave: ${chave}`, JSON.parse(item));
-      }
-    });
+    const raw = localStorage.getItem("plania_import_raw");
+    if (raw) {
+      const dados = JSON.parse(raw);
+      console.log("=== DEBUG: DADOS BRUTOS DA PLANILHA ===");
+      console.log("Todas as chaves detectadas:", Object.keys(dados[0] || {}));
+      console.log("Linha 1 completa:", dados[0]);
+      console.log("Linha 2 completa:", dados[1]);
+    }
   }, []);
 
   const filteredTransactions = useMemo(() => {
@@ -80,6 +80,11 @@ export default function Transacoes() {
       tipo: 'gasto', valor: "", descricao: "", categoria: "Outros",
       data: new Date().toISOString().split("T")[0], recorrente: false
     });
+  };
+
+  // Função de exibição prioritária para descrição
+  const getDescricaoExibicao = (t: any) => {
+    return t.descricao || t.description || t.historico || t.memo || t.nome || t.titulo || `${t.categoria || "Transação"} · ${t.data}`;
   };
 
   return (
@@ -195,7 +200,7 @@ export default function Transacoes() {
                 {getIconeCategoria(t.categoria)}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-foreground truncate">{t.descricao}</h4>
+                <h4 className="text-sm font-bold text-foreground truncate">{getDescricaoExibicao(t)}</h4>
                 <p className="text-[11px] text-muted-foreground">{t.categoria} · {t.data}</p>
               </div>
               <div className={cn("text-sm font-black font-mono-financial", (t.tipo === 'receita' || t.valor > 0) ? "text-green-500" : "text-red-400")}>
