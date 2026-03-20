@@ -15,6 +15,7 @@ import Themes from "./pages/Themes";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import Onboarding from "./pages/Onboarding";
+import Importar from "./pages/Importar";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -50,6 +51,7 @@ const App = () => (
             />
             <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
             <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
+            <Route path="/dashboard/importar" element={<DashWrap><Importar /></DashWrap>} />
             
             <Route path="/themes" element={<Themes />} />
             <Route path="*" element={<NotFound />} />

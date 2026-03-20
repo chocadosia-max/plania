@@ -9,6 +9,8 @@ import {
   TrendingUp,
   Sparkles,
   Trophy,
+  Download,
+  FileUp,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link, useLocation } from "react-router-dom";
@@ -24,6 +26,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const mainNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -81,6 +84,33 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Import Button */}
+        <div className="px-3 py-2">
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link to="/dashboard/importar">
+                <button className={`
+                  w-full flex items-center gap-2 px-3 py-2.5 rounded-xl
+                  bg-gradient-to-r from-purple-600 to-cyan-500 
+                  text-white font-bold text-xs uppercase tracking-wider
+                  shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40
+                  transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]
+                  relative overflow-hidden group
+                `}>
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                  
+                  <FileUp className="w-4 h-4 shrink-0 animate-bounce" style={{ animationDuration: '2s' }} />
+                  {!collapsed && <span>Importar Planilha</span>}
+                </button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[200px] text-xs">
+              Traga seus dados do Excel, Google Sheets ou Notion em minutos
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         {/* AI assistant link */}
         <SidebarGroup>

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export function DataSettings() {
   const handleExportExcel = () => toast.success("Exportação Excel iniciada! 📊");
   const handleExportPDF = () => toast.success("Relatório PDF gerado! 📄");
-  const handleImportCSV = () => toast.success("Extrato importado com sucesso! ✅");
   const handleClearData = () => {
     localStorage.clear();
     toast.success("Todos os dados foram limpos.");
@@ -34,9 +34,11 @@ export function DataSettings() {
           <Button variant="outline" className="gap-2 justify-start" onClick={handleExportPDF}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
-          <Button variant="outline" className="gap-2 justify-start" onClick={handleImportCSV}>
-            <Upload className="w-4 h-4" /> Importar CSV
-          </Button>
+          <Link to="/dashboard/importar" className="w-full">
+            <Button variant="outline" className="gap-2 justify-start w-full">
+              <Upload className="w-4 h-4" /> Importar Planilha
+            </Button>
+          </Link>
         </div>
 
         <Separator />
