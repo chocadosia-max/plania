@@ -2,18 +2,19 @@
 
 import React, { useState } from 'react';
 import { 
-  FileSpreadsheet, Globe, ClipboardList, ArrowLeft, ShieldCheck, Sparkles, CheckCircle2, AlertTriangle
+  FileSpreadsheet, Globe, ArrowLeft, ShieldCheck, Sparkles, CheckCircle2, AlertTriangle, Cloud
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ExcelFlow } from "@/components/import/ExcelFlow";
+import { GoogleSheetsFlow } from "@/components/import/GoogleSheetsFlow";
 import { AutoAdaptationLoading } from "@/components/import/AutoAdaptationLoading";
 import { usePlanIA } from "@/contexts/PlanIAContext";
 import { useNavigate } from 'react-router-dom';
 import { processarPlanilhaEspecializada } from "@/lib/import-engine";
 
 export default function Importar() {
-  const [step, setStep] = useState<'source' | 'upload' | 'analysis' | 'adapting'>('source');
+  const [step, setStep] = useState<'source' | 'upload-excel' | 'upload-gsheets' | 'analysis' | 'adapting'>('source');
   const [pendingData, setPendingData] = useState<any>(null);
   const { importData } = usePlanIA();
   const navigate = useNavigate();
@@ -56,20 +57,40 @@ export default function Importar() {
       </div>
 
       {step === 'source' && (
-        <div className="max-w-md mx-auto">
-          <button onClick={() => setStep('upload')} className="w-full group flex flex-col items-center text-center p-12 rounded-3xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all">
-            <div className="w-20 h-20 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-6">
-              <FileSpreadsheet className="w-10 h-10" />
+        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <button 
+            onClick={() => setStep('upload-excel')} 
+            className="group flex flex-col items-center text-center p-10 rounded-3xl border-2 border-border hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-300"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <FileSpreadsheet className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Selecionar FINANÇAS_2026.xlsx</h3>
-            <p className="text-sm text-muted-foreground">O PlanIA lerá todas as abas mensais, dívidas e alunos.</p>
+            <h3 className="text-lg font-bold mb-2">Arquivo Excel</h3>
+            <p className="text-xs text-muted-foreground">Upload manual do seu arquivo .xlsx ou .xls</p>
+          </button>
+
+          <button 
+            onClick={() => setStep('upload-gsheets')} 
+            className="group flex flex-col items-center text-center p-10 rounded-3xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Cloud className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold mb-2">Google Sheets</h3>
+            <p className="text-xs text-muted-foreground">Sincronize via link direto da nuvem</p>
           </button>
         </div>
       )}
 
-      {step === 'upload' && (
+      {step === 'upload-excel' && (
         <div className="animate-reveal">
           <ExcelFlow onNext={(data) => handleDataLoaded(data as any)} />
+        </div>
+      )}
+
+      {step === 'upload-gsheets' && (
+        <div className="animate-reveal">
+          <GoogleSheetsFlow onNext={(data) => handleDataLoaded(data as any)} />
         </div>
       )}
 
@@ -80,32 +101,42 @@ export default function Importar() {
               <Sparkles className="w-10 h-10 text-primary animate-pulse" />
             </div>
             <h2 className="text-2xl font-black">Planilha Analisada!</h2>
-            <p className="text-muted-foreground">Confira a validação dos totais mensais:</p>
+            <p className="text-muted-foreground">Confira a validação dos totais mensais detectados:</p>
           </div>
 
           <div className="glass-card rounded-3xl p-6 space-y-3">
-            {pendingData.validacao.slice(0, 4).map((v, i) => {
-              const diff = Math.abs(v.saldo - v.planilha.saldo);
-              const isOk = diff < 1;
-              return (
-                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    {isOk ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertTriangle className="w-5 h-5 text-amber-500" />}
-                    <span className="font-bold text-sm">{v.mes}</span>
+            {pendingData.validacao.length > 0 ? (
+              pendingData.validacao.slice(0, 6).map((v: any, i: number) => {
+                const diff = Math.abs(v.saldo - v.planilha.saldo);
+                const isOk = diff < 1;
+                return (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/40">
+                    <div className="flex items-center gap-3">
+                      {isOk ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertTriangle className="w-5 h-5 text-amber-500" />}
+                      <span className="font-bold text-sm">{v.mes}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Saldo Calculado</p>
+                      <p className={cn("text-sm font-black", isOk ? "text-foreground" : "text-amber-500")}>
+                        R$ {v.saldo.toLocaleString('pt-BR')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground">Saldo Calculado</p>
-                    <p className={cn("text-sm font-black", isOk ? "text-foreground" : "text-amber-500")}>
-                      R$ {v.saldo.toLocaleString('pt-BR')}
-                    </p>
-                    {!isOk && <p className="text-[8px] text-amber-500">Planilha: R$ {v.planilha.saldo.toLocaleString('pt-BR')}</p>}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                Nenhuma aba mensal (JAN26, FEV26...) foi detectada. Verifique os nomes das abas.
+              </div>
+            )}
           </div>
 
-          <Button size="lg" className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl" onClick={handleConfirm}>
+          <Button 
+            size="lg" 
+            className="w-full h-16 rounded-2xl text-xl font-black shadow-2xl" 
+            onClick={handleConfirm}
+            disabled={pendingData.transacoes.length === 0}
+          >
             Confirmar e Sincronizar 🚀
           </Button>
         </div>
