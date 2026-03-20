@@ -20,7 +20,87 @@
     --input: 248 20% 20%;
     --ring: 263 70% 58%;
     --radius: 0.75rem;
+    --chart-1: 263 70% 58%;
+    --chart-2: 330 65% 55%;
+    --chart-3: 199 89% 48%;
+    --chart-4: 47 95% 50%;
+    --chart-5: 160 84% 39%;
     color-scheme: dark;
+  }
+
+  [data-theme="floresta"] {
+    --background: 160 30% 5%;
+    --foreground: 160 10% 95%;
+    --card: 160 25% 10%;
+    --primary: 160 84% 39%;
+    --secondary: 35 92% 44%;
+    --muted: 160 20% 15%;
+    --border: 160 20% 18%;
+    --chart-1: 160 84% 39%;
+    --chart-2: 35 92% 44%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 142 71% 45%;
+    --chart-5: 20 90% 48%;
+  }
+
+  [data-theme="oceano"] {
+    --background: 215 40% 7%;
+    --foreground: 210 20% 98%;
+    --card: 215 35% 12%;
+    --primary: 199 89% 48%;
+    --secondary: 187 92% 45%;
+    --muted: 215 25% 18%;
+    --border: 215 25% 22%;
+    --chart-1: 199 89% 48%;
+    --chart-2: 187 92% 45%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 190 90% 50%;
+    --chart-5: 200 95% 40%;
+  }
+
+  [data-theme="por-do-sol"] {
+    --background: 20 30% 6%;
+    --foreground: 30 20% 96%;
+    --card: 20 25% 11%;
+    --primary: 20 90% 48%;
+    --secondary: 12 88% 59%;
+    --muted: 20 20% 16%;
+    --border: 20 20% 20%;
+    --chart-1: 20 90% 48%;
+    --chart-2: 12 88% 59%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 35 92% 44%;
+    --chart-5: 10 85% 55%;
+  }
+
+  [data-theme="minimalista"] {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --primary: 84 81% 55%;
+    --secondary: 0 0% 40%;
+    --muted: 0 0% 15%;
+    --border: 0 0% 20%;
+    --chart-1: 84 81% 55%;
+    --chart-2: 0 0% 60%;
+    --chart-3: 0 0% 40%;
+    --chart-4: 84 81% 40%;
+    --chart-5: 0 0% 80%;
+  }
+
+  [data-theme="candy"] {
+    --background: 330 40% 8%;
+    --foreground: 330 20% 98%;
+    --card: 330 35% 13%;
+    --primary: 330 81% 60%;
+    --secondary: 270 95% 75%;
+    --muted: 330 25% 18%;
+    --border: 330 25% 22%;
+    --chart-1: 330 81% 60%;
+    --chart-2: 270 95% 75%;
+    --chart-3: 300 90% 70%;
+    --chart-4: 340 85% 65%;
+    --chart-5: 280 80% 70%;
   }
 
   * { @apply border-border; }
