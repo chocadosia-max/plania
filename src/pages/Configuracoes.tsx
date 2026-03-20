@@ -20,7 +20,7 @@ import {
 import {
   Check, Plus, Trash2, Download, Upload, User, Palette, Bell, Database,
   DollarSign, Pencil, X, ShoppingCart, Car, Pizza, Heart, Gamepad2, BookOpen,
-  Home, Briefcase, Plane, Gift,
+  Home, Briefcase, Plane, Gift, Save,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,6 +109,10 @@ const Configuracoes = () => {
       reader.onload = (ev) => setProfilePhoto(ev.target?.result as string);
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSaveProfile = () => {
+    toast.success("Perfil atualizado com sucesso! ✨");
   };
 
   const addCategory = () => {
@@ -241,6 +245,12 @@ const Configuracoes = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSaveProfile} className="gap-2">
+                <Save className="w-4 h-4" /> Salvar perfil
+              </Button>
             </div>
           </div>
         </section>
