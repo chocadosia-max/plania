@@ -5,7 +5,7 @@ import {
 import {
   ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, CreditCard, PiggyBank,
   ShoppingCart, Home, Car, Utensils, Gamepad2, Zap, Briefcase,
-  Heart, Music,
+  Heart, Music, CheckCircle2, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { QuickLaunchBar } from "@/components/QuickLaunchBar";
+import { cn } from "@/lib/utils";
 
 /* ─── data ─── */
 const monthlyData = [
@@ -23,18 +24,6 @@ const monthlyData = [
   { month: "Jan", receita: 5200, despesa: 3200 },
   { month: "Fev", receita: 4900, despesa: 2800 },
   { month: "Mar", receita: 5600, despesa: 3500 },
-];
-
-const quarterlyData = [
-  { month: "Q3 '25", receita: 14200, despesa: 9800 },
-  { month: "Q4 '25", receita: 13500, despesa: 9300 },
-  { month: "Q1 '26", receita: 15700, despesa: 9500 },
-];
-
-const annualData = [
-  { month: "2024", receita: 52000, despesa: 38000 },
-  { month: "2025", receita: 58000, despesa: 36000 },
-  { month: "2026", receita: 16800, despesa: 10300 },
 ];
 
 const categoryData = [
@@ -161,12 +150,21 @@ function StatCard({
 }
 
 const Dashboard = () => {
-  const [chartFilter, setChartFilter] = useState<"mensal" | "trimestral" | "anual">("mensal");
+  const [showSuccessCard, setShowSuccessCard] = useState(false);
+  const [summary, setSummary] = useState<any>(null);
   const [visibleRows, setVisibleRows] = useState(0);
 
-  const chartData = chartFilter === "mensal" ? monthlyData : chartFilter === "trimestral" ? quarterlyData : annualData;
-
   useEffect(() => {
+    const isNewImport = localStorage.getItem("plania-show-import-success") === "true";
+    if (isNewImport) {
+      setShowSuccessCard(true);
+      const savedSummary = localStorage.getItem("plania-adapted-summary");
+      if (savedSummary) setSummary(JSON.parse(savedSummary));
+      
+      localStorage.removeItem("plania-show-import-success");
+      setTimeout(() => setShowSuccessCard(false), 8000);
+    }
+
     const timers: NodeJS.Timeout[] = [];
     transactions.forEach((_, i) => {
       timers.push(setTimeout(() => setVisibleRows((v) => Math.max(v, i + 1)), 100 + i * 80));
@@ -176,6 +174,34 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
+      {/* Success Card */}
+      {showSuccessCard && summary && (
+        <div className="animate-reveal bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30 rounded-2xl p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-2">
+            <button onClick={() => setShowSuccessCard(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center shrink-0 animate-check-bounce">
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-foreground">Configuração concluída! 🎉</h2>
+              <p className="text-sm text-muted-foreground">
+                Importamos {summary.count} transações e adaptamos o PlanIA para o seu perfil 
+                <span className="font-bold text-primary ml-1 uppercase">{localStorage.getItem("plania-user-type")}</span>.
+              </p>
+              <div className="flex flex-wrap gap-4 mt-4">
+                <div className="text-xs"><span className="text-muted-foreground">Renda média:</span> <span className="font-bold text-green-500">R$ {summary.income.toLocaleString('pt-BR')}</span></div>
+                <div className="text-xs"><span className="text-muted-foreground">Gasto médio:</span> <span className="font-bold text-red-400">R$ {summary.expenses.toLocaleString('pt-BR')}</span></div>
+                <div className="text-xs"><span className="text-muted-foreground">Economia:</span> <span className="font-bold text-primary">R$ {summary.savings.toLocaleString('pt-BR')}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard icon={Wallet} label="Saldo Atual" targetValue={16320} change="+8,2%" positive accentColor="hsl(var(--chart-1))" sparkData={sparklines.saldo} tooltip="Saldo consolidado de todas as contas" delay={0} />
@@ -186,25 +212,12 @@ const Dashboard = () => {
 
       {/* Charts row */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-card rounded-xl p-5">
+        <div className="lg:col-span-2 glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '400ms' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground text-sm">Receitas vs Gastos</h3>
-            <div className="flex gap-1">
-              {(["mensal", "trimestral", "anual"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setChartFilter(f)}
-                  className={`text-xs px-3 py-1 rounded-full transition-all duration-200 ${
-                    chartFilter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={chartData}>
+            <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
@@ -212,20 +225,24 @@ const Dashboard = () => {
                 contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))", fontSize: 12 }}
                 formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR")}`, ""]}
               />
-              <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} animationDuration={800} />
-              <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} animationDuration={800} animationBegin={200} />
+              <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} animationDuration={1500} />
+              <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} animationDuration={1500} animationBegin={300} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card rounded-xl p-5">
+        <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '600ms' }}>
           <h3 className="font-semibold text-foreground text-sm mb-4">Gastos por categoria</h3>
           <div className="h-[180px] w-full">
             {/* Pie chart content here */}
           </div>
           <div className="space-y-2 mt-1">
-            {categoryData.map((c) => (
-              <div key={c.name} className="flex items-center justify-between text-xs">
+            {categoryData.map((c, i) => (
+              <div 
+                key={c.name} 
+                className="flex items-center justify-between text-xs animate-reveal"
+                style={{ animationDelay: `${800 + i * 100}ms` }}
+              >
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.color }} />
                   <span className="text-muted-foreground">{c.name}</span>
@@ -238,7 +255,7 @@ const Dashboard = () => {
       </div>
 
       {/* Transactions */}
-      <div className="glass-card rounded-xl p-5">
+      <div className="glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '1000ms' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground text-sm">Transações recentes</h3>
           <Button variant="ghost" size="sm" className="text-xs text-primary">

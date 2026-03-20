@@ -19,51 +19,51 @@ import { ExcelFlow } from "@/components/import/ExcelFlow";
 import { GoogleSheetsFlow } from "@/components/import/GoogleSheetsFlow";
 import { NotionFlow } from "@/components/import/NotionFlow";
 import { CSVFlow } from "@/components/import/CSVFlow";
-import { MappingStep } from "@/components/import/MappingStep";
-import { CategorizationStep } from "@/components/import/CategorizationStep";
-import { ConfirmationStep } from "@/components/import/ConfirmationStep";
+import { AutoAdaptationLoading } from "@/components/import/AutoAdaptationLoading";
+import { adaptData } from "@/lib/adaptation-logic";
+import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner";
 
 type ImportSource = 'excel' | 'google' | 'notion' | 'csv' | 'other' | null;
-type ImportStep = 'source' | 'upload' | 'mapping' | 'categorization' | 'confirmation';
+type ImportStep = 'source' | 'upload' | 'adapting';
 
 export default function Importar() {
   const [step, setStep] = useState<ImportStep>('source');
   const [source, setSource] = useState<ImportSource>(null);
-  const [importedData, setImportedData] = useState<any[]>([]);
-  const [mappedData, setMappedData] = useState<any[]>([]);
+  const [adaptedResult, setAdaptedResult] = useState<any>(null);
+  const navigate = useNavigate();
 
   const handleSourceSelect = (src: ImportSource) => {
     setSource(src);
     setStep('upload');
   };
 
-  const handleBack = () => {
-    if (step === 'upload') setStep('source');
-    else if (step === 'mapping') setStep('upload');
-    else if (step === 'categorization') setStep('mapping');
-    else if (step === 'confirmation') setStep('categorization');
+  const handleDataLoaded = (data: any[]) => {
+    const result = adaptData(data);
+    setAdaptedResult(result);
+    setStep('adapting');
   };
 
-  const renderStep = () => {
-    switch (step) {
-      case 'source':
-        return <SourceSelection onSelect={handleSourceSelect} />;
-      case 'upload':
-        if (source === 'excel') return <ExcelFlow onNext={(data) => { setImportedData(data); setStep('mapping'); }} />;
-        if (source === 'google') return <GoogleSheetsFlow onNext={(data) => { setImportedData(data); setStep('mapping'); }} />;
-        if (source === 'notion') return <NotionFlow onNext={(data) => { setImportedData(data); setStep('mapping'); }} />;
-        if (source === 'csv') return <CSVFlow onNext={(data) => { setImportedData(data); setStep('mapping'); }} />;
-        return null;
-      case 'mapping':
-        return <MappingStep data={importedData} onNext={(data) => { setMappedData(data); setStep('categorization'); }} />;
-      case 'categorization':
-        return <CategorizationStep data={mappedData} onNext={(data) => { setMappedData(data); setStep('confirmation'); }} />;
-      case 'confirmation':
-        return <ConfirmationStep data={mappedData} />;
-      default:
-        return null;
-    }
+  const handleAdaptationComplete = () => {
+    // Salvar dados adaptados no localStorage
+    localStorage.setItem("plania-user-type", adaptedResult.profile);
+    localStorage.setItem("plania-adapted-summary", JSON.stringify(adaptedResult.summary));
+    localStorage.setItem("plania-show-import-success", "true");
+    
+    // Disparar evento de atualização de perfil
+    window.dispatchEvent(new Event("profile-updated"));
+    
+    navigate('/dashboard');
+    toast.success("Sistema adaptado com sucesso! 🚀");
   };
+
+  const handleBack = () => {
+    if (step === 'upload') setStep('source');
+  };
+
+  if (step === 'adapting') {
+    return <AutoAdaptationLoading onComplete={handleAdaptationComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8 max-w-5xl mx-auto">
@@ -86,27 +86,19 @@ export default function Importar() {
             </p>
           </div>
         </div>
-        
-        {step !== 'source' && (
-          <div className="hidden sm:flex items-center gap-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div 
-                key={i} 
-                className={cn(
-                  "w-8 h-1.5 rounded-full transition-all duration-500",
-                  i <= ['upload', 'mapping', 'categorization', 'confirmation'].indexOf(step) + 1 
-                    ? "bg-primary" 
-                    : "bg-muted"
-                )} 
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Content */}
       <div className="relative">
-        {renderStep()}
+        {step === 'source' && <SourceSelection onSelect={handleSourceSelect} />}
+        {step === 'upload' && (
+          <>
+            {source === 'excel' && <ExcelFlow onNext={handleDataLoaded} />}
+            {source === 'google' && <GoogleSheetsFlow onNext={handleDataLoaded} />}
+            {source === 'notion' && <NotionFlow onNext={handleDataLoaded} />}
+            {source === 'csv' && <CSVFlow onNext={handleDataLoaded} />}
+          </>
+        )}
       </div>
 
       {/* Security Note */}

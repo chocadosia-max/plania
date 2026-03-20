@@ -216,6 +216,29 @@ export function AIChatPanel() {
     saveMessages(messages);
   }, [messages]);
 
+  // Listen for auto-adaptation success
+  useEffect(() => {
+    const handleImportSuccess = () => {
+      const summaryStr = localStorage.getItem("plania-adapted-summary");
+      const profile = localStorage.getItem("plania-user-type");
+      if (!summaryStr) return;
+      
+      const summary = JSON.parse(summaryStr);
+      const aiMsg: Message = {
+        id: Date.now(),
+        role: "ai",
+        text: `Olá! 👋 Analisei sua planilha completa.\nAqui está o que encontrei:\n\n📊 ${summary.count} transações analisadas\n💰 Renda média mensal: R$ ${summary.income.toLocaleString('pt-BR')}\n💸 Gasto médio mensal: R$ ${summary.expenses.toLocaleString('pt-BR')}\n💚 Economia média: R$ ${summary.savings.toLocaleString('pt-BR')}/mês\n\nDetectei que você tem o perfil ${profile?.toUpperCase()}, então ativei as ferramentas corretas para você. ✅\n\nComece explorando seu dashboard — tudo já está configurado! 🚀`,
+        streaming: true
+      };
+      
+      setMessages(prev => [...prev, aiMsg]);
+      setOpen(true); // Abre o chat para mostrar a mensagem
+    };
+
+    window.addEventListener("profile-updated", handleImportSuccess);
+    return () => window.removeEventListener("profile-updated", handleImportSuccess);
+  }, []);
+
   const handleClose = () => {
     setClosing(true);
     setTimeout(() => {
