@@ -42,9 +42,7 @@ function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, posi
 }
 
 const Dashboard = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewType, setViewType] = useState<'month' | 'year'>('month');
-  const { isSyncing, sync } = usePlanIA();
+  const { isSyncing, sync, selectedDate, setSelectedDate, viewType, setViewType } = usePlanIA();
 
   const periodo: Periodo = {
     tipo: viewType,
