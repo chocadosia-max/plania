@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Search, CreditCard } from "lucide-react";
+import React, { useState, useMemo } from 'react';
+import { Plus, Trash2, Search, X, Edit2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -11,62 +11,30 @@ import { usePlanIA } from "@/contexts/PlanIAContext";
 
 export function getIconeTransacao(descricao: string, tipo: string) {
   const d = (descricao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  // Receitas
   if (d.includes("salario") || d.includes("salário")) return "💼";
   if (d.includes("freelance") || d.includes("freela")) return "💻";
   if (d.includes("aluguel") && tipo === "receita") return "🏠";
   if (d.includes("dividendo")) return "📈";
   if (d.includes("bonus") || d.includes("bônus")) return "🎁";
   if (d.includes("pix receb") || (d.includes("transferen") && tipo === "receita")) return "💸";
-  if (d.includes("tony")) return "👤";
-  
-  // Moradia
   if (d.includes("aluguel")) return "🏠";
   if (d.includes("condomin")) return "🏢";
   if (d.includes("energia") || d.includes("luz") || d.includes("eletric")) return "💡";
   if (d.includes("agua") || d.includes("água")) return "💧";
   if (d.includes("gas") || d.includes("gás")) return "🔥";
   if (d.includes("internet") || d.includes("wifi")) return "📡";
-  
-  // Alimentação
   if (d.includes("mercado") || d.includes("supermercad")) return "🛒";
   if (d.includes("restaurante") || d.includes("lanchon")) return "🍽️";
   if (d.includes("ifood") || d.includes("delivery")) return "🛵";
-  if (d.includes("padaria")) return "🥖";
-  if (d.includes("acougue") || d.includes("açougue")) return "🥩";
-  
-  // Transporte
   if (d.includes("uber") || d.includes("99")) return "🚗";
   if (d.includes("combustiv") || d.includes("gasolina") || d.includes("posto")) return "⛽";
   if (d.includes("onibus") || d.includes("metro")) return "🚌";
-  if (d.includes("passagem") || d.includes("aereo") || d.includes("latam") || d.includes("gol")) return "✈️";
-  
-  // Saúde
   if (d.includes("farmacia") || d.includes("farmácia") || d.includes("drogaria")) return "💊";
   if (d.includes("medico") || d.includes("médico") || d.includes("consulta")) return "🏥";
-  if (d.includes("academia") || d.includes("gym")) return "💪";
-  if (d.includes("plano saude") || d.includes("convenio")) return "🩺";
-  
-  // Lazer
   if (d.includes("netflix")) return "🎬";
   if (d.includes("spotify")) return "🎵";
-  if (d.includes("amazon")) return "📦";
-  if (d.includes("disney")) return "🏰";
-  if (d.includes("cinema")) return "🎥";
-  if (d.includes("jogo") || d.includes("steam")) return "🎮";
-  
-  // Educação
-  if (d.includes("escola") || d.includes("colegio")) return "🏫";
-  if (d.includes("faculdade") || d.includes("univers")) return "🎓";
-  if (d.includes("curso") || d.includes("udemy") || d.includes("alura")) return "📚";
-  
-  // Finanças
   if (d.includes("invest") || d.includes("cdb") || d.includes("tesouro")) return "📈";
   if (d.includes("cartao") || d.includes("cartão") || d.includes("fatura")) return "💳";
-  if (d.includes("emprestimo") || d.includes("parcela")) return "🏦";
-  if (d.includes("seguro")) return "🛡️";
-  
   if (tipo === "receita") return "💰";
   return "📋";
 }
@@ -75,6 +43,7 @@ export default function Transacoes() {
   const { transactions, addTransaction, deleteTransaction } = usePlanIA();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any>(null);
 
   const [form, setForm] = useState({
     tipo: 'gasto' as 'receita' | 'gasto',
@@ -82,7 +51,6 @@ export default function Transacoes() {
     descricao: "",
     categoria: "Outros",
     data: new Date().toISOString().split("T")[0],
-    recorrente: false
   });
 
   const filteredTransactions = useMemo(() => {
@@ -94,7 +62,7 @@ export default function Transacoes() {
 
   const totals = useMemo(() => {
     const receitas = transactions.filter(t => t.tipo === "receita" || t.valor > 0).reduce((sum, t) => sum + Math.abs(t.valor), 0);
-    const gastos = transactions.filter(t => t.tipo === "gasto" || t.tipo === "despesa" || t.valor < 0).reduce((sum, t) => sum + Math.abs(t.valor), 0);
+    const gastos = transactions.filter(t => t.tipo === "gasto" || t.valor < 0).reduce((sum, t) => sum + Math.abs(t.valor), 0);
     return { receitas, gastos, saldo: receitas - gastos };
   }, [transactions]);
 
@@ -102,7 +70,7 @@ export default function Transacoes() {
     if (!form.valor || !form.descricao) return;
     addTransaction({ ...form, valor: parseFloat(form.valor) * (form.tipo === 'gasto' ? -1 : 1) });
     setIsDrawerOpen(false);
-    setForm({ tipo: 'gasto', valor: "", descricao: "", categoria: "Outros", data: new Date().toISOString().split("T")[0], recorrente: false });
+    setForm({ tipo: 'gasto', valor: "", descricao: "", categoria: "Outros", data: new Date().toISOString().split("T")[0] });
   };
 
   return (
@@ -157,40 +125,92 @@ export default function Transacoes() {
         </div>
       </div>
 
-      <div className="space-y-2">
-        {filteredTransactions.length === 0 ? (
-          <div className="text-center py-20 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto"><CreditCard className="w-8 h-8 text-muted-foreground" /></div>
-            <p className="text-muted-foreground">Nenhuma transação encontrada.</p>
-          </div>
-        ) : (
-          filteredTransactions.map((t, i) => (
-            <div key={t.id || i} className="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/40 transition-all duration-300 animate-reveal" style={{ animationDelay: `${i * 30}ms` }}>
-              <div style={{
-                width: 44, height: 44,
-                borderRadius: "50%",
-                background: (t.tipo === "receita" || t.valor > 0) ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 20,
-                flexShrink: 0,
-                border: `1px solid ${(t.tipo === "receita" || t.valor > 0) ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`
-              }}>
-                {getIconeTransacao(t.descricao, t.tipo)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-foreground truncate">{t.descricao}</h4>
-                <p className="text-[11px] text-muted-foreground">{t.categoria} · {t.data}</p>
-              </div>
-              <div className={cn("text-sm font-black font-mono-financial", (t.tipo === 'receita' || t.valor > 0) ? "text-green-500" : "text-red-400")}>
-                {(t.tipo === 'receita' || t.valor > 0) ? '+' : '-'} R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteTransaction(t.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+      <div className="space-y-3">
+        {filteredTransactions.map((t, i) => (
+          <div 
+            key={t.id || i} 
+            className="transacao-item"
+            style={{ "--cor-tipo": (t.tipo === 'receita' || t.valor > 0) ? "#34D399" : "#F87171" } as any}
+            onClick={() => setSelected(t)}
+          >
+            <div className={cn(
+              "w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0 border",
+              (t.tipo === 'receita' || t.valor > 0) ? "bg-green-500/15 border-green-500/30" : "bg-red-400/15 border-red-400/30"
+            )}>
+              {getIconeTransacao(t.descricao, t.tipo)}
             </div>
-          ))
-        )}
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-foreground truncate">{t.descricao}</h4>
+              <p className="text-[11px] text-muted-foreground">{t.categoria} · {t.data}</p>
+            </div>
+            <div className={cn("text-sm font-black font-mono-financial", (t.tipo === 'receita' || t.valor > 0) ? "text-green-500" : "text-red-400")}>
+              {(t.tipo === 'receita' || t.valor > 0) ? '+' : '-'} R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* MODAL DE DETALHE */}
+      {selected && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          onClick={(e) => e.target === e.currentTarget && setSelected(null)}
+        >
+          <div className="bg-[#0F1629] border border-[#2D4070] rounded-[20px] p-8 w-full max-w-md relative animate-scale-in shadow-2xl">
+            <button onClick={() => setSelected(null)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#1E2D4D] flex items-center justify-center text-[#7B8DB0] hover:text-white transition-colors">×</button>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className={cn(
+                "w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0",
+                (selected.tipo === 'receita' || selected.valor > 0) ? "bg-green-500/15" : "bg-red-400/15"
+              )}>
+                {getIconeTransacao(selected.descricao, selected.tipo)}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-[#F0F4FF] leading-tight">{selected.descricao}</h2>
+                <p className="text-xs text-[#7B8DB0] mt-1">{selected.categoria} · {selected.data}</p>
+              </div>
+            </div>
+
+            <div className={cn(
+              "rounded-xl p-4 mb-6 text-center border",
+              (selected.tipo === 'receita' || selected.valor > 0) ? "bg-green-500/5 border-green-500/20" : "bg-red-400/5 border-red-400/20"
+            )}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8DB0] mb-1">Valor</p>
+              <p className={cn("text-3xl font-black font-mono-financial", (selected.tipo === 'receita' || selected.valor > 0) ? "text-green-500" : "text-red-400")}>
+                {(selected.tipo === 'receita' || selected.valor > 0) ? '+' : '-'} R$ {Math.abs(selected.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8DB0] mb-2">Dados completos da planilha</p>
+              <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                {Object.entries(selected.dadosOriginais || selected)
+                  .filter(([k, v]) => v !== null && v !== undefined && v !== "" && !["id", "origem", "dadosOriginais"].includes(k))
+                  .map(([chave, valor]) => (
+                    <div key={chave} className="flex justify-between items-center p-3 bg-[#162040] rounded-lg border border-[#1E2D4D]">
+                      <span className="text-xs text-[#7B8DB0] capitalize">{chave.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-bold text-[#F0F4FF]">{valor.toString()}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <Button className="flex-1 h-12 rounded-xl bg-[#6366F1] hover:bg-[#6366F1]/90 font-bold gap-2">
+                <Edit2 className="w-4 h-4" /> Editar
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-12 h-12 rounded-xl border-red-400/30 bg-red-400/10 text-red-400 hover:bg-red-400/20"
+                onClick={() => { deleteTransaction(selected.id); setSelected(null); }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

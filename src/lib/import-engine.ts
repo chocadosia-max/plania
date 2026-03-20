@@ -20,7 +20,7 @@ export async function varrerPlanilha(file: File) {
   return todasAbas;
 }
 
-// 2. Filtrar Linhas Válidas (Ignora cabeçalhos, totais e vazios)
+// 2. Filtrar Linhas Válidas
 function filtrarLinhasValidas(linhas: any[]) {
   const palavrasIgnorar = [
     "receitas fixas", "receitas variaveis", "gastos fixos", "gastos variaveis",
@@ -33,23 +33,16 @@ function filtrarLinhasValidas(linhas: any[]) {
   
   return linhas.filter(linha => {
     const textos = Object.values(linha).map(v => v?.toString().toLowerCase().trim() || "");
-    
-    // Ignora se for cabeçalho ou total
     const ehCabecalho = textos.some(t => palavrasIgnorar.some(p => t === p || t.startsWith(p)));
     if (ehCabecalho) return false;
     
-    // Ignora se valor for 0 ou vazio
     const temValorReal = Object.values(linha).some(v => {
       const num = parseFloat(v?.toString().replace("R$", "").replace(/\./g, "").replace(",", ".").trim() || "0");
       return !isNaN(num) && num !== 0;
     });
     if (!temValorReal) return false;
     
-    // Ignora linhas completamente vazias
-    const temConteudo = Object.values(linha).some(v => v !== "" && v !== null && v !== undefined);
-    if (!temConteudo) return false;
-    
-    return true;
+    return Object.values(linha).some(v => v !== "" && v !== null && v !== undefined);
   });
 }
 
@@ -70,22 +63,18 @@ export function detectarColunas(linhas: any[]) {
 // 4. Encontrar Descrição Real
 function encontrarDescricao(linha: any, mapa: any) {
   if (mapa.descricao && linha[mapa.descricao]) return linha[mapa.descricao].toString().trim();
-  
   const nomesDescricao = ["descricao", "descrição", "description", "historico", "histórico", "memo", "detalhe", "nome", "titulo", "lancamento", "item", "produto", "estabelecimento", "local"];
   const chavesLinha = Object.keys(linha);
-  
   for (const nome of nomesDescricao) {
     const chave = chavesLinha.find(k => k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().includes(nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
     if (chave && linha[chave] && linha[chave].toString().trim() !== "") return linha[chave].toString().trim();
   }
-  
   for (const chave of chavesLinha) {
     const val = linha[chave]?.toString() || "";
     const ehData = /\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(val) || /\d{4}[\/\-]\d{2}[\/\-]\d{2}/.test(val);
     const ehNumero = !isNaN(parseFloat(val.replace("R$", "").replace(".", "").replace(",", ".").trim()));
     if (!ehData && !ehNumero && val.trim() !== "" && val.length > 2) return val.trim();
   }
-  
   return Object.entries(linha).filter(([k, v]) => {
     const val = v?.toString() || "";
     const ehNum = !isNaN(parseFloat(val.replace("R$", "").replace(".", "").replace(",", ".").trim()));
@@ -117,8 +106,6 @@ export function formatarData(dataRaw: any) {
 // 6. Extrair Dados Reais
 export function extrairDados(linhas: any[], mapa: any) {
   const linhasValidas = filtrarLinhasValidas(linhas);
-  localStorage.setItem("plania_import_raw", JSON.stringify(linhasValidas.slice(0, 10)));
-
   return linhasValidas.map((linha, index) => {
     const descricaoReal = encontrarDescricao(linha, mapa);
     const getByColunaReal = (campo: string) => {
@@ -152,7 +139,9 @@ export function extrairDados(linhas: any[], mapa: any) {
       tipo: tipoDetectado,
       categoria: catRaw ? catRaw.toString().trim() : "Outros",
       data: formatarData(dataRaw),
-      origem: "importado"
+      origem: "importado",
+      // GUARDA TODOS OS DADOS ORIGINAIS
+      dadosOriginais: { ...linha }
     };
   }).filter(t => t.descricao !== "—" || t.valor > 0);
 }
