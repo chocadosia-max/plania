@@ -3,13 +3,10 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FileSpreadsheet, Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { varrerPlanilha, detectarColunas, extrairDados } from "@/lib/import-engine";
 
 interface ExcelFlowProps {
-  onNext: (data: any[]) => void;
+  onNext: (file: File) => void;
 }
 
 export function ExcelFlow({ onNext }: ExcelFlowProps) {
@@ -20,42 +17,8 @@ export function ExcelFlow({ onNext }: ExcelFlowProps) {
     if (!file) return;
 
     setLoading(true);
-    try {
-      // 1. Varredura completa
-      const todasAbas = await varrerPlanilha(file);
-      
-      // 2. Pega a primeira aba com dados
-      const nomeAba = Object.keys(todasAbas)[0];
-      const linhas = todasAbas[nomeAba].raw;
-      
-      console.log(`Processando aba: ${nomeAba} com ${linhas.length} linhas`);
-      
-      // 3. Detecta colunas reais
-      const mapa = detectarColunas(linhas);
-      
-      if (!mapa?.valor && !mapa?.descricao) {
-        toast.error("Não encontramos colunas de valor ou descrição. Verifique o arquivo.");
-        setLoading(false);
-        return;
-      }
-      
-      // 4. Extrai dados reais
-      const transacoes = extrairDados(linhas, mapa);
-      
-      if (transacoes.length === 0) {
-        toast.error("Nenhum dado válido encontrado na planilha.");
-        setLoading(false);
-        return;
-      }
-
-      toast.success(`${transacoes.length} transações detectadas com sucesso! 📗`);
-      onNext(transacoes);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao processar a planilha. Verifique o formato.");
-    } finally {
-      setLoading(false);
-    }
+    // Apenas passamos o arquivo para o Importar.tsx processar com o motor especializado
+    onNext(file);
   }, [onNext]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -91,10 +54,7 @@ export function ExcelFlow({ onNext }: ExcelFlowProps) {
         {loading ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-lg font-bold text-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" /> Fazendo varredura total...
-            </div>
-            <div className="w-48 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-green-500 animate-[shimmer_1.5s_infinite]" style={{ width: '100%' }} />
+              <Loader2 className="w-5 h-5 animate-spin" /> Preparando leitura...
             </div>
           </div>
         ) : (
@@ -102,8 +62,8 @@ export function ExcelFlow({ onNext }: ExcelFlowProps) {
             <h3 className="text-xl font-bold mb-2">Arraste seu arquivo Excel aqui</h3>
             <p className="text-sm text-muted-foreground">ou clique para selecionar (.xlsx, .xls)</p>
             <div className="mt-8 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Varredura Inteligente</span>
-              <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Detecção de Colunas</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Varredura Especializada</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Estrutura 2026</span>
             </div>
           </>
         )}
@@ -112,9 +72,9 @@ export function ExcelFlow({ onNext }: ExcelFlowProps) {
       <div className="bg-muted/30 rounded-2xl p-6 flex items-start gap-4 border border-border/40">
         <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="text-sm font-bold">Varredura Total Ativada</p>
+          <p className="text-sm font-bold">Motor de Precisão Ativado</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Nossa IA agora analisa cada célula da sua planilha para encontrar os dados, não importa o nome das colunas ou o formato das datas.
+            O PlanIA agora utiliza o motor de leitura segmentada para identificar Gastos Fixos, Variáveis e Entradas conforme a estrutura da sua planilha.
           </p>
         </div>
       </div>
