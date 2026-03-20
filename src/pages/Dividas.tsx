@@ -1,424 +1,201 @@
-import { useState, useEffect } from "react"
+"use client";
 
-export default function DividasPage() {
+import React, { useState } from 'react';
+import { Plus, Trash2, CreditCard, Calendar, Wallet, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { usePlanIA } from "@/contexts/PlanIAContext";
+import { cn } from "@/lib/utils";
 
-  const [dividas, setDividas] = useState([])
+const mesesLabel = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const mesesChaves = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-  useEffect(() => {
-    try {
-      const salvas = localStorage.getItem(
-        "plania_dividas"
-      )
-      if (salvas) {
-        const parsed = JSON.parse(salvas)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setDividas(parsed)
-          return
-        }
-      }
+export default function Dividas() {
+  const { dividas, addDivida, deleteDivida } = usePlanIA();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form, setForm] = useState({
+    credor: "",
+    valorTotal: "",
+    icone: "💳",
+    cor: "#6366F1",
+    pagamentos: mesesChaves.reduce((acc, mes) => ({ ...acc, [mes]: 0 }), {})
+  });
 
-      // Dados reais da planilha
-      const dadosPlanilha = [
-        {
-          id: 1,
-          credor: "PicPay",
-          valorTotal: 36461.16,
-          pagamentos: {
-            jan: 5480.41,
-            fev: 5831.82,
-            mar: 5510.77,
-            abr: 0, mai: 0, jun: 0,
-            jul: 0, ago: 0, set: 0,
-            out: 0, nov: 0, dez: 0
-          },
-          faltando: 19638.16,
-          cor: "#F97316",
-          icone: "💳"
-        },
-        {
-          id: 2,
-          credor: "NuBank",
-          valorTotal: 21151.18,
-          pagamentos: {
-            jan: 6353.52,
-            fev: 7717.63,
-            mar: 5109.02,
-            abr: 0, mai: 0, jun: 0,
-            jul: 0, ago: 0, set: 0,
-            out: 0, nov: 0, dez: 0
-          },
-          faltando: 1971.01,
-          cor: "#8B5CF6",
-          icone: "🟣"
-        },
-        {
-          id: 3,
-          credor: "Empréstimo",
-          valorTotal: 5816.10,
-          pagamentos: {
-            jan: 0, fev: 0,
-            mar: 572.24,
-            abr: 0, mai: 0, jun: 0,
-            jul: 0, ago: 0, set: 0,
-            out: 0, nov: 0, dez: 0
-          },
-          faltando: 5234.49,
-          cor: "#EF4444",
-          icone: "🏦"
-        },
-        {
-          id: 4,
-          credor: "Renner",
-          valorTotal: 1445.55,
-          pagamentos: {
-            jan: 0,
-            fev: 132.50,
-            mar: 289.11,
-            abr: 0, mai: 0, jun: 0,
-            jul: 0, ago: 0, set: 0,
-            out: 0, nov: 0, dez: 0
-          },
-          faltando: 1023.94,
-          cor: "#F472B6",
-          icone: "🛍️"
-        },
-        {
-          id: 5,
-          credor: "Bradesco",
-          valorTotal: 649.50,
-          pagamentos: {
-            jan: 47.00,
-            fev: 132.50,
-            mar: 47.00,
-            abr: 47.00,
-            mai: 47.00,
-            jun: 47.00,
-            jul: 47.00,
-            ago: 47.00,
-            set: 47.00,
-            out: 47.00,
-            nov: 47.00,
-            dez: 47.00
-          },
-          faltando: 0,
-          cor: "#22D3EE",
-          icone: "🏛️"
-        },
-      ]
+  const handleSave = () => {
+    if (!form.credor || !form.valorTotal) return;
+    
+    const valorTotalNum = parseFloat(form.valorTotal);
+    const totalPago = Object.values(form.pagamentos).reduce((a: any, b: any) => a + (parseFloat(b) || 0), 0);
+    
+    addDivida({
+      ...form,
+      valorTotal: valorTotalNum,
+      faltando: Math.max(0, valorTotalNum - totalPago)
+    });
+    
+    setIsModalOpen(false);
+    setForm({
+      credor: "",
+      valorTotal: "",
+      icone: "💳",
+      cor: "#6366F1",
+      pagamentos: mesesChaves.reduce((acc, mes) => ({ ...acc, [mes]: 0 }), {})
+    });
+  };
 
-      setDividas(dadosPlanilha)
-      localStorage.setItem(
-        "plania_dividas",
-        JSON.stringify(dadosPlanilha)
-      )
-
-    } catch (e) {
-      console.error("Erro dívidas:", e)
-      setDividas([])
-    }
-  }, [])
-
-  const lista = Array.isArray(dividas)
-    ? dividas : []
-
-  const totalDevido = lista.reduce(
-    (s, d) => s + (Number(d.valorTotal)||0), 0
-  )
-  const totalPago = lista.reduce((s, d) => {
-    const pags = d.pagamentos || {}
-    return s + Object.values(pags)
-      .reduce((a,b) => a + (Number(b)||0), 0)
-  }, 0)
-  const totalFaltando = lista.reduce(
-    (s, d) => s + (Number(d.faltando)||0), 0
-  )
-
-  const meses = [
-    "jan","fev","mar","abr","mai","jun",
-    "jul","ago","set","out","nov","dez"
-  ]
-  const mesesLabel = [
-    "Jan","Fev","Mar","Abr","Mai","Jun",
-    "Jul","Ago","Set","Out","Nov","Dez"
-  ]
+  const totalDevido = dividas.reduce((s, d) => s + (Number(d.valorTotal) || 0), 0);
+  const totalPago = dividas.reduce((s, d) => {
+    const pags = d.pagamentos || {};
+    return s + Object.values(pags).reduce((a: any, b: any) => a + (Number(b) || 0), 0);
+  }, 0);
+  const totalFaltando = Math.max(0, totalDevido - totalPago);
 
   return (
-    <div style={{
-      padding: 24,
-      color: "#F0F4FF",
-      minHeight: "100vh"
-    }}>
+    <div className="p-4 sm:p-6 space-y-8 max-w-5xl mx-auto pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-foreground">Dívidas</h1>
+          <p className="text-sm text-muted-foreground">Controle seus parcelamentos e débitos</p>
+        </div>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4" /> Nova dívida
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black">Cadastrar Dívida</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Credor / Nome</Label>
+                  <Input placeholder="Ex: NuBank, PicPay" value={form.credor} onChange={(e) => setForm({...form, credor: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Total (R$)</Label>
+                  <Input type="number" placeholder="0.00" value={form.valorTotal} onChange={(e) => setForm({...form, valorTotal: e.target.value})} />
+                </div>
+              </div>
 
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{
-          fontSize: 28,
-          fontWeight: "bold",
-          margin: 0
-        }}>
-          Dívidas
-        </h1>
-        <p style={{
-          color: "#7B8DB0",
-          margin: "4px 0 0",
-          fontSize: 14
-        }}>
-          Controle de pagamentos 2026
-        </p>
-      </div>
-
-      {/* Cards resumo */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3,1fr)",
-        gap: 16,
-        marginBottom: 28
-      }}>
-        {[
-          {
-            label: "Total devido",
-            valor: totalDevido,
-            cor: "#EF4444",
-            icone: "💸"
-          },
-          {
-            label: "Total pago",
-            valor: totalPago,
-            cor: "#34D399",
-            icone: "✅"
-          },
-          {
-            label: "Ainda faltando",
-            valor: totalFaltando,
-            cor: "#F97316",
-            icone: "⏳"
-          }
-        ].map((card, i) => (
-          <div key={i} style={{
-            background: "#0F1629",
-            border: `1px solid ${card.cor}30`,
-            borderTop: `3px solid ${card.cor}`,
-            borderRadius: 12,
-            padding: 20
-          }}>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start"
-            }}>
-              <p style={{
-                color: "#7B8DB0",
-                fontSize: 12,
-                margin: 0,
-                textTransform: "uppercase",
-                letterSpacing: 1
-              }}>
-                {card.label}
-              </p>
-              <span style={{ fontSize: 18 }}>
-                {card.icone}
-              </span>
+              <div className="space-y-3">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pagamentos já realizados (2026)</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {mesesChaves.map((mes, i) => (
+                    <div key={mes} className="space-y-1">
+                      <Label className="text-[10px]">{mesesLabel[i]}</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="0" 
+                        className="h-8 text-xs"
+                        value={(form.pagamentos as any)[mes]} 
+                        onChange={(e) => setForm({
+                          ...form, 
+                          pagamentos: { ...form.pagamentos, [mes]: e.target.value }
+                        })} 
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p style={{
-              color: card.cor,
-              fontSize: 22,
-              fontWeight: "bold",
-              fontFamily: "monospace",
-              margin: "8px 0 0"
-            }}>
-              R$ {Number(card.valor||0)
-                .toLocaleString("pt-BR",{
-                  minimumFractionDigits: 2
-                })}
-            </p>
-          </div>
-        ))}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={!form.credor || !form.valorTotal}>Salvar Dívida</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Cards de cada dívida */}
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 16
-      }}>
-        {lista.map(divida => {
-          const d = divida || {}
-          const pags = d.pagamentos || {}
-          const totalPagoDivida =
-            Object.values(pags)
-              .reduce((a,b)=>a+(Number(b)||0),0)
-          const percentPago =
-            d.valorTotal > 0
-              ? Math.min(
-                  (totalPagoDivida /
-                    d.valorTotal) * 100,
-                  100
-                )
-              : 0
+      {/* Resumo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="glass-card rounded-2xl p-5 border-red-400/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Devido</p>
+          <p className="text-2xl font-black text-red-400 font-mono-financial">R$ {totalDevido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-5 border-green-500/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Pago</p>
+          <p className="text-2xl font-black text-green-500 font-mono-financial">R$ {totalPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-5 border-orange-400/20">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Faltando</p>
+          <p className="text-2xl font-black text-orange-400 font-mono-financial">R$ {totalFaltando.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        </div>
+      </div>
 
-          return (
-            <div key={d.id||Math.random()}
-              style={{
-                background: "#0F1629",
-                border: "1px solid #1E2D4D",
-                borderLeft:
-                  `4px solid ${d.cor||"#6366F1"}`,
-                borderRadius: 14,
-                padding: 20
-              }}
-            >
-              {/* Linha superior */}
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12
-              }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10
-                }}>
-                  <span style={{ fontSize: 22 }}>
-                    {d.icone || "💳"}
-                  </span>
-                  <div>
-                    <p style={{
-                      color: "#F0F4FF",
-                      fontWeight: "bold",
-                      fontSize: 16,
-                      margin: 0
-                    }}>
-                      {d.credor || "Credor"}
-                    </p>
-                    <p style={{
-                      color: "#7B8DB0",
-                      fontSize: 12,
-                      margin: "2px 0 0"
-                    }}>
-                      Valor original: R${" "}
-                      {Number(d.valorTotal||0)
-                        .toLocaleString("pt-BR",{
-                          minimumFractionDigits:2
-                        })}
-                    </p>
+      {/* Lista */}
+      <div className="space-y-4">
+        {dividas.length === 0 ? (
+          <div className="py-20 text-center space-y-4 glass-card rounded-3xl border-dashed">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+              <CreditCard className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">Nenhuma dívida cadastrada. Comece agora!</p>
+          </div>
+        ) : (
+          dividas.map((d, i) => {
+            const pags = d.pagamentos || {};
+            const totalPagoDivida = Object.values(pags).reduce((a: any, b: any) => a + (Number(b) || 0), 0);
+            const percentPago = d.valorTotal > 0 ? Math.min((totalPagoDivida / d.valorTotal) * 100, 100) : 0;
+            const faltando = Math.max(0, d.valorTotal - totalPagoDivida);
+
+            return (
+              <div key={d.id || i} className="glass-card rounded-2xl p-6 border-l-4 animate-reveal group" style={{ borderLeftColor: d.cor, animationDelay: `${i * 100}ms` }}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl">{d.icone}</div>
+                    <div>
+                      <h3 className="font-bold text-lg">{d.credor}</h3>
+                      <p className="text-xs text-muted-foreground">Total: R$ {Number(d.valorTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className={cn("font-black font-mono-financial", faltando === 0 ? "text-green-500" : "text-red-400")}>
+                        {faltando === 0 ? "QUITADO ✓" : `Faltam R$ ${faltando.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDivida(d.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
-                <div style={{
-                  textAlign: "right"
-                }}>
-                  <p style={{
-                    color: Number(d.faltando)===0
-                      ? "#34D399" : "#EF4444",
-                    fontWeight: "bold",
-                    fontFamily: "monospace",
-                    fontSize: 16,
-                    margin: 0
-                  }}>
-                    {Number(d.faltando) === 0
-                      ? "✅ Quitado"
-                      : `R$ ${Number(d.faltando)
-                          .toLocaleString("pt-BR",{
-                            minimumFractionDigits:2
-                          })} faltando`
-                    }
-                  </p>
+                <div className="space-y-2">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${percentPago}%`, backgroundColor: d.cor }} />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                    <span>{percentPago.toFixed(1)}% pago</span>
+                    <span>R$ {totalPagoDivida.toLocaleString('pt-BR')} pagos</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-6 sm:grid-cols-12 gap-2 mt-6">
+                  {mesesChaves.map((mes, idx) => {
+                    const valor = Number(pags[mes] || 0);
+                    const pago = valor > 0;
+                    return (
+                      <div key={mes} className={cn(
+                        "flex flex-col items-center p-1.5 rounded-lg border text-center transition-all",
+                        pago ? "bg-primary/10 border-primary/30" : "bg-muted/30 border-border/40"
+                      )}>
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">{mesesLabel[idx]}</span>
+                        <span className={cn("text-[9px] font-bold font-mono-financial mt-0.5", pago ? "text-primary" : "text-muted-foreground/40")}>
+                          {pago ? `R$${Math.round(valor)}` : "—"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Barra de progresso */}
-              <div style={{
-                background: "#162040",
-                borderRadius: 8,
-                height: 8,
-                marginBottom: 14,
-                overflow: "hidden"
-              }}>
-                <div style={{
-                  width: `${percentPago}%`,
-                  height: "100%",
-                  background: percentPago >= 100
-                    ? "#34D399"
-                    : d.cor || "#6366F1",
-                  borderRadius: 8,
-                  transition: "width 800ms ease",
-                  boxShadow: `0 0 8px ${
-                    d.cor || "#6366F1"}60`
-                }} />
-              </div>
-              <p style={{
-                color: "#7B8DB0",
-                fontSize: 12,
-                margin: "0 0 14px"
-              }}>
-                {percentPago.toFixed(1)}% pago
-                {" "}· R$ {totalPagoDivida
-                  .toLocaleString("pt-BR",{
-                    minimumFractionDigits:2
-                  })} de R$ {Number(d.valorTotal)
-                  .toLocaleString("pt-BR",{
-                    minimumFractionDigits:2
-                  })}
-              </p>
-
-              {/* Grid de pagamentos mensais */}
-              <div style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(6,1fr)",
-                gap: 6
-              }}>
-                {meses.map((mes, i) => {
-                  const val =
-                    Number(pags[mes] || 0)
-                  const pago = val > 0
-
-                  return (
-                    <div key={mes} style={{
-                      background: pago
-                        ? `${d.cor||"#6366F1"}20`
-                        : "#162040",
-                      border: `1px solid ${pago
-                        ? d.cor||"#6366F1"
-                        : "#1E2D4D"}`,
-                      borderRadius: 8,
-                      padding: "6px 4px",
-                      textAlign: "center"
-                    }}>
-                      <p style={{
-                        color: "#7B8DB0",
-                        fontSize: 10,
-                        margin: 0
-                      }}>
-                        {mesesLabel[i]}
-                      </p>
-                      <p style={{
-                        color: pago
-                          ? d.cor||"#6366F1"
-                          : "#3D4F6E",
-                        fontSize: 10,
-                        fontWeight: "bold",
-                        fontFamily: "monospace",
-                        margin: "2px 0 0"
-                      }}>
-                        {pago
-                          ? `R$${val
-                              .toLocaleString(
-                                "pt-BR",{
-                                  maximumFractionDigits:0
-                                })}`
-                          : "—"
-                        }
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
+            );
+          })
+        )}
       </div>
     </div>
-  )
+  );
 }

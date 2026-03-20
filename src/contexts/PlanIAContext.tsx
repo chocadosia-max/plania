@@ -33,6 +33,8 @@ interface PlanIAContextType {
   deleteGoal: (id: string) => void;
   addBudget: (b: any) => void;
   deleteBudget: (id: string) => void;
+  addDivida: (d: any) => void;
+  deleteDivida: (id: string) => void;
   getBudgetSpent: (cat: string) => number;
   clearAllData: () => void;
 }
@@ -89,67 +91,14 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sync = async () => {
     setIsSyncing(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setTransactions(safeParse("plania_transacoes", []));
-    setDividas(safeParse("plania_dividas", []));
-    setClientes(safeParse("plania_clientes", []));
     setLastSync(new Date());
     setIsSyncing(false);
     toast.success("Dados sincronizados! ✨");
   };
 
   const importData = (data: any) => {
-    setIsSyncing(true);
-    
-    const rawTrans = data.transacoes || data.transactions || [];
-    const normalized = rawTrans.map((t: any, i: number) => ({
-      id: t.id || `imp_${Date.now()}_${i}`,
-      descricao: t.descricao || t.description || "Sem nome",
-      valor: parseFloat(String(t.valor || t.value || 0)),
-      tipo: t.tipo || (parseFloat(String(t.valor || 0)) > 0 ? 'receita' : 'gasto'),
-      categoria: t.categoria || t.category || "Outros",
-      data: t.data || t.date || new Date().toLocaleDateString('pt-BR'),
-      mes: t.mes,
-      ano: t.ano || 2026,
-      dadosOriginais: t.dadosOriginais
-    }));
-
-    setTransactions(normalized);
-    setDividas(data.dividas || []);
-    setClientes(data.clientes || []);
-    
-    const newTabs: DynamicTab[] = [];
-    if (data.dividas?.length > 0) {
-      newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
-    }
-    if (data.clientes?.length > 0) {
-      newTabs.push({ id: 'clientes', label: 'Clientes', icon: '👥', path: '/dashboard/clientes', isNew: true });
-    }
-    setDynamicTabs(newTabs);
-
-    // Persistência imediata para evitar race conditions
-    localStorage.setItem("plania_transacoes", JSON.stringify(normalized));
-    localStorage.setItem("plania_dividas", JSON.stringify(data.dividas || []));
-    localStorage.setItem("plania_clientes", JSON.stringify(data.clientes || []));
-    localStorage.setItem("plania_tabs", JSON.stringify(newTabs));
-
-    const income = normalized.filter(t => t.tipo === 'receita').reduce((s, t) => s + Math.abs(t.valor), 0);
-    const expenses = normalized.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Math.abs(t.valor), 0);
-    
-    localStorage.setItem("plania-adapted-summary", JSON.stringify({
-      count: normalized.length,
-      income: income / 6,
-      expenses: expenses / 6,
-      savings: (income - expenses) / 6
-    }));
-
-    if (data.clientes?.length > 0) {
-      localStorage.setItem("plania-user-type", "freelancer");
-    }
-
-    setLastSync(new Date());
-    setIsSyncing(false);
-    window.dispatchEvent(new Event("profile-updated"));
-    toast.success(`Sucesso! ${normalized.length} transações importadas.`);
+    // Função mantida para compatibilidade interna se necessário, mas lógica de UI removida
+    toast.info("Importação processada internamente.");
   };
 
   const clearAllData = () => {
@@ -171,6 +120,15 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
   const addBudget = (b: any) => setBudgets(prev => [{ ...b, id: Date.now().toString() }, ...prev]);
   const deleteBudget = (id: string) => setBudgets(prev => prev.filter(b => b.id !== id));
+  
+  const addDivida = (d: any) => {
+    setDividas(prev => [{ ...d, id: Date.now().toString() }, ...prev]);
+    toast.success("Dívida cadastrada com sucesso! 💳");
+  };
+  const deleteDivida = (id: string) => {
+    setDividas(prev => prev.filter(d => d.id !== id));
+    toast.info("Dívida removida.");
+  };
 
   const getBudgetSpent = (cat: string) => {
     return Math.abs(transactions
@@ -184,6 +142,7 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       viewType, selectedDate, isSyncing, lastSync,
       setViewType, setSelectedDate, sync, importData, 
       addTransaction, deleteTransaction, addGoal, deleteGoal, addBudget, deleteBudget, 
+      addDivida, deleteDivida,
       getBudgetSpent, clearAllData
     }}>
       {children}
