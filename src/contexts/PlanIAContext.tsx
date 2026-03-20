@@ -46,6 +46,8 @@ const safeParse = (key: string, fallback: any) => {
   } catch (e) { return fallback; }
 };
 
+const isValidDate = (d: any) => d instanceof Date && !isNaN(d.getTime());
+
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Estados principais
   const [transactions, setTransactions] = useState<any[]>(() => safeParse("plania_transacoes", []));
@@ -62,7 +64,9 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(() => {
     const saved = localStorage.getItem("plania-last-sync");
-    return saved ? new Date(saved) : null;
+    if (!saved) return null;
+    const date = new Date(saved);
+    return isValidDate(date) ? date : null;
   });
 
   // Persistência Automática
@@ -75,11 +79,13 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       plania_dividas: dividas,
       plania_clientes: clientes,
       plania_tabs: dynamicTabs,
-      "plania-last-sync": lastSync?.toISOString()
+      "plania-last-sync": isValidDate(lastSync) ? lastSync?.toISOString() : null
     };
 
     Object.entries(dataToSave).forEach(([key, value]) => {
-      if (value !== null) localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      if (value !== null && value !== undefined) {
+        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      }
     });
 
     // Sincroniza a chave legada plania-data para compatibilidade
@@ -87,7 +93,7 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       transacoes: transactions,
       dividas,
       clientes,
-      ultimaAtualizacao: new Date().toISOString()
+      ultimaAtualizacao: isValidDate(lastSync) ? lastSync?.toISOString() : new Date().toISOString()
     }));
   }, [transactions, goals, budgets, investments, dividas, clientes, dynamicTabs, lastSync]);
 
