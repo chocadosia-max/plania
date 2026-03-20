@@ -1,106 +1,428 @@
-"use client";
+import { useState, useEffect } from "react"
 
-import React from 'react';
-import { usePlanIA } from "@/contexts/PlanIAContext";
-import { Users, Music, Languages, CheckCircle2, Calendar } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+export default function ClientesPage() {
 
-export default function Clientes() {
-  const { clientes } = usePlanIA();
+  const [clientes, setClientes] = useState([])
+  const [filtro, setFiltro] = useState("todos")
 
-  const russo = clientes.filter(c => c.instrumento === 'Russo');
-  const violino = clientes.filter(c => c.instrumento === 'Violino');
+  useEffect(() => {
+    try {
+      // Tenta carregar do localStorage
+      const salvos = localStorage.getItem(
+        "plania_clientes"
+      )
+      if (salvos) {
+        const parsed = JSON.parse(salvos)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setClientes(parsed)
+          return
+        }
+      }
+      
+      // Se não tiver no storage ou estiver vazio,
+      // usa dados padrão da planilha
+      const dadosPadrao = [
+        // RUSSO
+        {
+          id: 1,
+          nome: "Raísa Nogueira Medeiros",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: null,
+            mar: "18/02/2026"
+          }
+        },
+        {
+          id: 2,
+          nome: "Beatriz Martins",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: "05/02/2026",
+            mar: null
+          }
+        },
+        {
+          id: 3,
+          nome: "Miguel Campos",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: "03/01/2026",
+            fev: "05/02/2026",
+            mar: "02/03/2026"
+          }
+        },
+        {
+          id: 4,
+          nome: "Luiz Fernando Rosa",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: "05/02/2026",
+            mar: "09/03/2026"
+          }
+        },
+        {
+          id: 5,
+          nome: "Heloisa Caumo",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: "28/01/2026",
+            mar: null
+          }
+        },
+        {
+          id: 6,
+          nome: "Izamara",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: "29/01/2026",
+            mar: "25/02/2026"
+          }
+        },
+        {
+          id: 7,
+          nome: "Sofia",
+          instrumento: "Russo",
+          valor: 350,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: null,
+            mar: "26/02/2026"
+          }
+        },
+        // VIOLINO
+        {
+          id: 8,
+          nome: "Daniel Araújo",
+          instrumento: "Violino",
+          valor: 360,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: null,
+            mar: "27/02/2026"
+          }
+        },
+        {
+          id: 9,
+          nome: "Sofia",
+          instrumento: "Violino",
+          valor: 360,
+          status: "ativo",
+          pagamentos: {
+            jan: null,
+            fev: "15/02/2026",
+            mar: null
+          }
+        },
+      ]
+      
+      setClientes(dadosPadrao)
+      localStorage.setItem(
+        "plania_clientes",
+        JSON.stringify(dadosPadrao)
+      )
+      
+    } catch (e) {
+      console.error("Erro clientes:", e)
+      setClientes([])
+    }
+  }, [])
+
+  // Proteção contra dados inválidos
+  const lista = Array.isArray(clientes)
+    ? clientes : []
+
+  const filtrados = filtro === "todos"
+    ? lista
+    : lista.filter(c =>
+        (c.instrumento || "")
+          .toLowerCase() ===
+        filtro.toLowerCase()
+      )
+
+  // Totais
+  const totalMensal = lista.reduce(
+    (s, c) => s + (Number(c.valor) || 0), 0
+  )
+  const totalRusso = lista
+    .filter(c => c.instrumento === "Russo")
+    .reduce((s,c) => s + (Number(c.valor)||0),0)
+  const totalViolino = lista
+    .filter(c => c.instrumento === "Violino")
+    .reduce((s,c) => s + (Number(c.valor)||0),0)
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-10 animate-reveal">
-      <div className="flex items-center justify-between">
+    <div style={{
+      padding: 24,
+      color: "#F0F4FF",
+      minHeight: "100vh"
+    }}>
+
+      {/* Header */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 24
+      }}>
         <div>
-          <h1 className="text-3xl font-black tracking-tight">Gestão de Alunos</h1>
-          <p className="text-sm text-muted-foreground">Acompanhamento de aulas e pagamentos</p>
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: "bold",
+            margin: 0
+          }}>
+            Alunos
+          </h1>
+          <p style={{
+            color: "#7B8DB0",
+            margin: "4px 0 0",
+            fontSize: 14
+          }}>
+            Russo e Violino
+          </p>
         </div>
-        <div className="flex gap-4">
-          <div className="text-center px-6 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-            <p className="text-[10px] font-black uppercase text-blue-500">Russo</p>
-            <p className="text-xl font-black">{russo.length} alunos</p>
-          </div>
-          <div className="text-center px-6 py-3 rounded-2xl bg-purple-500/10 border border-purple-500/20">
-            <p className="text-[10px] font-black uppercase text-purple-500">Violino</p>
-            <p className="text-xl font-black">{violino.length} alunos</p>
-          </div>
-        </div>
+        <button style={{
+          background: "#6366F1",
+          color: "white",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontWeight: "bold"
+        }}>
+          + Novo aluno
+        </button>
       </div>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Languages className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-bold">Alunos de Russo</h2>
-        </div>
-        <div className="glass-card rounded-3xl overflow-hidden border-border/40">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] text-[10px] font-black uppercase">Nome do Aluno</TableHead>
-                <TableHead className="text-[10px] font-black uppercase text-center">Status Pagamento</TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase">Total no Ano</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {russo.map((c, i) => (
-                <TableRow key={i} className="hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-bold">{c.nome}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center gap-1">
-                      {c.pagamentos.map((p, idx) => (
-                        <div key={idx} className={cn(
-                          "w-2 h-2 rounded-full",
-                          p > 0 ? "bg-green-500" : "bg-muted"
-                        )} title={`Mês ${idx + 1}: R$ ${p}`} />
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono-financial font-bold">R$ {c.totalAno.toLocaleString('pt-BR')}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+      {/* Cards resumo */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(3, 1fr)",
+        gap: 16,
+        marginBottom: 24
+      }}>
+        {[
+          {
+            label: "Total mensal",
+            valor: totalMensal,
+            cor: "#6366F1"
+          },
+          {
+            label: "Aulas de Russo",
+            valor: totalRusso,
+            cor: "#22D3EE"
+          },
+          {
+            label: "Aulas de Violino",
+            valor: totalViolino,
+            cor: "#F472B6"
+          }
+        ].map((card, i) => (
+          <div key={i} style={{
+            background: "#0F1629",
+            border: `1px solid ${card.cor}30`,
+            borderRadius: 12,
+            padding: 20
+          }}>
+            <p style={{
+              color: "#7B8DB0",
+              fontSize: 12,
+              margin: "0 0 8px",
+              textTransform: "uppercase",
+              letterSpacing: 1
+            }}>
+              {card.label}
+            </p>
+            <p style={{
+              color: card.cor,
+              fontSize: 24,
+              fontWeight: "bold",
+              fontFamily: "monospace",
+              margin: 0
+            }}>
+              R$ {card.valor
+                .toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2
+                })}
+            </p>
+          </div>
+        ))}
+      </div>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Music className="w-6 h-6 text-purple-500" />
-          <h2 className="text-xl font-bold">Alunos de Violino</h2>
+      {/* Filtros */}
+      <div style={{
+        display: "flex",
+        gap: 8,
+        marginBottom: 20
+      }}>
+        {["todos","Russo","Violino"].map(f => (
+          <button
+            key={f}
+            onClick={() => setFiltro(f)}
+            style={{
+              background: filtro === f
+                ? "#6366F1" : "#0F1629",
+              color: filtro === f
+                ? "white" : "#7B8DB0",
+              border: filtro === f
+                ? "none"
+                : "1px solid #1E2D4D",
+              padding: "8px 18px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: 13
+            }}
+          >
+            {f === "todos" ? "Todos" : f}
+          </button>
+        ))}
+      </div>
+
+      {/* Lista de alunos */}
+      {filtrados.length === 0 ? (
+        <div style={{
+          textAlign: "center",
+          padding: "60px 20px",
+          color: "#7B8DB0"
+        }}>
+          <div style={{ fontSize: 48 }}>
+            👥
+          </div>
+          <p style={{ marginTop: 16 }}>
+            Nenhum aluno encontrado.
+          </p>
         </div>
-        <div className="glass-card rounded-3xl overflow-hidden border-border/40">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] text-[10px] font-black uppercase">Nome do Aluno</TableHead>
-                <TableHead className="text-[10px] font-black uppercase text-center">Status Pagamento</TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase">Total no Ano</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {violino.map((c, i) => (
-                <TableRow key={i} className="hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-bold">{c.nome}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center gap-1">
-                      {c.pagamentos.map((p, idx) => (
-                        <div key={idx} className={cn(
-                          "w-2 h-2 rounded-full",
-                          p > 0 ? "bg-green-500" : "bg-muted"
-                        )} title={`Mês ${idx + 1}: R$ ${p}`} />
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono-financial font-bold">R$ {c.totalAno.toLocaleString('pt-BR')}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      ) : (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10
+        }}>
+          {filtrados.map(cliente => {
+            const c = cliente || {}
+            const pags = c.pagamentos || {}
+            const mesesPagos = Object.values(
+              pags
+            ).filter(v => v !== null).length
+            
+            return (
+              <div key={c.id || Math.random()}
+                style={{
+                  background: "#0F1629",
+                  border: "1px solid #1E2D4D",
+                  borderRadius: 14,
+                  padding: "16px 20px",
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  transition: "all 200ms"
+                }}
+              >
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14
+                }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: 44, height: 44,
+                    borderRadius: "50%",
+                    background:
+                      c.instrumento === "Russo"
+                      ? "rgba(34,211,238,0.15)"
+                      : "rgba(244,114,182,0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 20,
+                    border:
+                      c.instrumento === "Russo"
+                      ? "1px solid rgba(34,211,238,0.3)"
+                      : "1px solid rgba(244,114,182,0.3)"
+                  }}>
+                    {c.instrumento === "Russo"
+                      ? "🗣️" : "🎻"}
+                  </div>
+
+                  <div>
+                    <p style={{
+                      color: "#F0F4FF",
+                      fontWeight: "bold",
+                      margin: 0,
+                      fontSize: 15
+                    }}>
+                      {c.nome || "Sem nome"}
+                    </p>
+                    <p style={{
+                      color: "#7B8DB0",
+                      fontSize: 13,
+                      margin: "3px 0 0"
+                    }}>
+                      {c.instrumento || ""} ·{" "}
+                      {mesesPagos} pagamento
+                      {mesesPagos !== 1
+                        ? "s" : ""} em dia
+                    </p>
+                  </div>
+                </div>
+
+                {/* Valor */}
+                <div style={{
+                  textAlign: "right"
+                }}>
+                  <p style={{
+                    color: "#34D399",
+                    fontWeight: "bold",
+                    fontFamily: "monospace",
+                    fontSize: 16,
+                    margin: 0
+                  }}>
+                    R$ {Number(c.valor || 0)
+                      .toLocaleString("pt-BR",{
+                        minimumFractionDigits:2
+                      })}
+                    /mês
+                  </p>
+                  <p style={{
+                    color: "#7B8DB0",
+                    fontSize: 12,
+                    margin: "3px 0 0"
+                  }}>
+                    R$ {(
+                      Number(c.valor || 0) *
+                      mesesPagos
+                    ).toLocaleString("pt-BR",{
+                      minimumFractionDigits:2
+                    })} recebido
+                  </p>
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </section>
+      )}
     </div>
-  );
+  )
 }
