@@ -49,7 +49,6 @@ const safeParse = (key: string, fallback: any) => {
 const isValidDate = (d: any) => d instanceof Date && !isNaN(d.getTime());
 
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Estados principais
   const [transactions, setTransactions] = useState<any[]>(() => safeParse("plania_transacoes", []));
   const [goals, setGoals] = useState<any[]>(() => safeParse("plania_metas", []));
   const [budgets, setBudgets] = useState<any[]>(() => safeParse("plania_orcamentos", []));
@@ -58,7 +57,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [clientes, setClientes] = useState<any[]>(() => safeParse("plania_clientes", []));
   const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => safeParse("plania_tabs", []));
   
-  // Estados de UI
   const [viewType, setViewType] = useState<'month' | 'year'>('month');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSyncing, setIsSyncing] = useState(false);
@@ -69,7 +67,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return isValidDate(date) ? date : null;
   });
 
-  // Persistência Automática
   useEffect(() => {
     const dataToSave = {
       plania_transacoes: transactions,
@@ -88,7 +85,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     });
 
-    // Sincroniza a chave legada plania-data para compatibilidade
     localStorage.setItem("plania-data", JSON.stringify({
       transacoes: transactions,
       dividas,
@@ -100,12 +96,9 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sync = async () => {
     setIsSyncing(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Recarrega do storage para garantir que nada foi perdido
     setTransactions(safeParse("plania_transacoes", []));
     setDividas(safeParse("plania_dividas", []));
     setClientes(safeParse("plania_clientes", []));
-    
     setLastSync(new Date());
     setIsSyncing(false);
     toast.success("Dados sincronizados! ✨");
@@ -114,12 +107,11 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const importData = (data: any) => {
     setIsSyncing(true);
     
-    // 1. Normalização de Transações
     const rawTrans = data.transacoes || data.transactions || [];
     const normalized = rawTrans.map((t: any, i: number) => ({
       id: t.id || `imp_${Date.now()}_${i}`,
       descricao: t.descricao || t.description || "Sem nome",
-      valor: parseFloat(String(t.valor || t.value || 0).replace(',', '.')),
+      valor: parseFloat(String(t.valor || t.value || 0)),
       tipo: t.tipo || (parseFloat(String(t.valor || 0)) > 0 ? 'receita' : 'gasto'),
       categoria: t.categoria || t.category || "Outros",
       data: t.data || t.date || new Date().toLocaleDateString('pt-BR'),
@@ -127,12 +119,10 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ano: t.ano || 2026
     }));
 
-    // 2. Atualização de Estados
     setTransactions(normalized);
     setDividas(data.dividas || []);
     setClientes(data.clientes || []);
     
-    // 3. Detecção de Abas Dinâmicas
     const newTabs: DynamicTab[] = [];
     if (data.dividas?.length > 0) {
       newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
@@ -142,13 +132,24 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     setDynamicTabs(newTabs);
 
-    // 4. Detecção Automática de Perfil
+    // Calcula resumo para o Assistente IA
+    const income = normalized.filter(t => t.tipo === 'receita').reduce((s, t) => s + Math.abs(t.valor), 0);
+    const expenses = normalized.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Math.abs(t.valor), 0);
+    
+    localStorage.setItem("plania-adapted-summary", JSON.stringify({
+      count: normalized.length,
+      income: income / 6, // Média estimada
+      expenses: expenses / 6,
+      savings: (income - expenses) / 6
+    }));
+
     if (data.clientes?.length > 0) {
       localStorage.setItem("plania-user-type", "freelancer");
     }
 
     setLastSync(new Date());
     setIsSyncing(false);
+    window.dispatchEvent(new Event("profile-updated"));
     toast.success(`Sucesso! ${normalized.length} transações importadas.`);
   };
 
@@ -165,7 +166,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     toast.info("Todos os dados foram removidos.");
   };
 
-  // Helpers de mutação
   const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
   const deleteTransaction = (id: string) => setTransactions(prev => prev.filter(t => t.id !== id));
   const addGoal = (g: any) => setGoals(prev => [{ ...g, id: Date.now().toString() }, ...prev]);
