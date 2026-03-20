@@ -1,19 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Database, Download, Upload, Trash2 } from "lucide-react";
+import { Database, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import { usePlanIA } from "@/contexts/PlanIAContext";
 
 export function DataSettings() {
   const { clearAllData } = usePlanIA();
-
-  const handleExportExcel = () => toast.success("Exportação Excel iniciada! 📊");
-  const handleExportPDF = () => toast.success("Relatório PDF gerado! 📄");
 
   return (
     <section className="space-y-5 pb-10" style={{ animation: "reveal 0.6s cubic-bezier(0.16,1,0.3,1) both", animationDelay: "400ms" }}>
@@ -25,21 +19,7 @@ export function DataSettings() {
       </div>
 
       <div className="glass-card rounded-xl p-6 space-y-4">
-        <div className="grid sm:grid-cols-3 gap-3">
-          <Button variant="outline" className="gap-2 justify-start" onClick={handleExportExcel}>
-            <Download className="w-4 h-4" /> Exportar Excel
-          </Button>
-          <Button variant="outline" className="gap-2 justify-start" onClick={handleExportPDF}>
-            <Download className="w-4 h-4" /> Exportar PDF
-          </Button>
-          <Link to="/dashboard/importar" className="w-full">
-            <Button variant="outline" className="gap-2 justify-start w-full">
-              <Upload className="w-4 h-4" /> Importar Planilha
-            </Button>
-          </Link>
-        </div>
-
-        <Separator />
+        <p className="text-sm text-muted-foreground">Gerencie o armazenamento local dos seus dados financeiros.</p>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -51,7 +31,7 @@ export function DataSettings() {
             <AlertDialogHeader>
               <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
               <AlertDialogDescription>
-                Isso vai apagar todas as transações, metas, conquistas e configurações. Essa ação não pode ser desfeita.
+                Isso vai apagar todas as transações, metas e configurações. Essa ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

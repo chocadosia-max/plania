@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Search, X, Edit2, FileSpreadsheet, FileText, Filter } from "lucide-react";
+import { Plus, Trash2, Search, X, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { usePlanIA } from "@/contexts/PlanIAContext";
-import { format, isWithinInterval, subMonths, startOfMonth, endOfMonth, parse } from "date-fns";
-import * as XLSX from 'xlsx';
+import { parse } from "date-fns";
 
 export function getIconeTransacao(descricao: string, tipo: string) {
   const d = (descricao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -42,12 +41,12 @@ export function getIconeTransacao(descricao: string, tipo: string) {
 }
 
 export default function Transacoes() {
-  const { transactions, addTransaction, deleteTransaction, selectedDate, viewType } = usePlanIA();
+  const { transactions, addTransaction, deleteTransaction, selectedDate } = usePlanIA();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any>(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("mes"); // Padrão agora é o mês selecionado
+  const [filtroPeriodo, setFiltroPeriodo] = useState("mes");
 
   const [form, setForm] = useState({
     tipo: 'gasto' as 'receita' | 'gasto',
@@ -59,14 +58,9 @@ export default function Transacoes() {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // Filtro de Busca
       const matchesSearch = (t.descricao || "").toLowerCase().includes(search.toLowerCase()) || 
                            (t.categoria || "").toLowerCase().includes(search.toLowerCase());
-      
-      // Filtro de Tipo
       const matchesTipo = filtroTipo === "todos" || t.tipo === filtroTipo;
-
-      // Filtro de Período (Sincronizado com o Dashboard)
       let matchesPeriodo = true;
       if (filtroPeriodo === "mes") {
         if (t.mes !== undefined) {
@@ -87,7 +81,6 @@ export default function Transacoes() {
           } catch (e) { matchesPeriodo = true; }
         }
       }
-
       return matchesSearch && matchesTipo && matchesPeriodo;
     });
   }, [transactions, search, filtroTipo, filtroPeriodo, selectedDate]);
@@ -97,19 +90,6 @@ export default function Transacoes() {
     const gastos = filteredTransactions.filter(t => t.tipo === "gasto").reduce((sum, t) => sum + Math.abs(t.valor), 0);
     return { receitas, gastos, saldo: receitas - gastos };
   }, [filteredTransactions]);
-
-  const exportarExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredTransactions.map(t => ({
-      Data: t.data,
-      Descrição: t.descricao,
-      Categoria: t.categoria,
-      Tipo: t.tipo,
-      Valor: t.valor
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Transações");
-    XLSX.writeFile(wb, "transacoes-plania.xlsx");
-  };
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8 pb-32">
@@ -148,7 +128,6 @@ export default function Transacoes() {
         </div>
       </div>
 
-      {/* Filtros e Exportação */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-xl border border-border/40">
           <button onClick={() => setFiltroTipo("todos")} className={cn("px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroTipo === "todos" ? "bg-card text-primary shadow-sm" : "text-muted-foreground")}>Todos</button>
@@ -160,11 +139,6 @@ export default function Transacoes() {
           <button onClick={() => setFiltroPeriodo("mes")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "mes" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Este mês</button>
           <button onClick={() => setFiltroPeriodo("ano")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "ano" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Este ano</button>
           <button onClick={() => setFiltroPeriodo("todos")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "todos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Tudo</button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={exportarExcel}><FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel</Button>
-          <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={() => window.print()}><FileText className="w-3.5 h-3.5 text-red-400" /> PDF</Button>
         </div>
       </div>
 
@@ -208,7 +182,6 @@ export default function Transacoes() {
         ))}
       </div>
 
-      {/* MODAL DE DETALHE */}
       {selected && (
         <div 
           className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
@@ -238,20 +211,6 @@ export default function Transacoes() {
               <p className={cn("text-3xl font-black font-mono-financial", (selected.tipo === 'receita' || selected.valor > 0) ? "text-green-500" : "text-red-400")}>
                 {(selected.tipo === 'receita' || selected.valor > 0) ? '+' : '-'} R$ {Math.abs(selected.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8DB0] mb-2">Dados completos da planilha</p>
-              <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                {Object.entries(selected.dadosOriginais || selected)
-                  .filter(([k, v]) => v !== null && v !== undefined && v !== "" && !["id", "origem", "dadosOriginais"].includes(k))
-                  .map(([chave, valor]) => (
-                    <div key={chave} className="flex justify-between items-center p-3 bg-[#162040] rounded-lg border border-[#1E2D4D]">
-                      <span className="text-xs text-[#7B8DB0] capitalize">{chave.replace(/_/g, " ")}</span>
-                      <span className="text-xs font-bold text-[#F0F4FF]">{valor.toString()}</span>
-                    </div>
-                  ))}
-              </div>
             </div>
 
             <div className="flex gap-3 mt-8">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Wallet, TrendingUp, CreditCard, PiggyBank,
-  ChevronLeft, ChevronRight, Calendar, RefreshCw
+  ChevronLeft, ChevronRight, Calendar
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, posi
 }
 
 const Dashboard = () => {
-  const { isSyncing, sync, selectedDate, setSelectedDate, viewType, setViewType } = usePlanIA();
+  const { selectedDate, setSelectedDate, viewType, setViewType } = usePlanIA();
 
   const periodo: Periodo = {
     tipo: viewType,
@@ -57,7 +57,6 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      {/* Seletor de Período e Ações */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 animate-reveal">
         <div className="flex items-center gap-4">
           <div className="flex p-1 bg-muted/50 rounded-xl border border-border/40">
@@ -87,16 +86,6 @@ const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2 text-[10px] font-black uppercase border-primary/30 text-primary hover:bg-primary/5"
-            onClick={sync}
-            disabled={isSyncing}
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", isSyncing && "animate-spin")} />
-            {isSyncing ? "Sincronizando..." : "Sincronizar"}
-          </Button>
           <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={() => setSelectedDate(new Date())}>
             <Calendar className="w-3.5 h-3.5" /> Hoje
           </Button>
@@ -111,7 +100,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Lista Recente */}
         <div className="lg:col-span-2 glass-card rounded-xl p-5 animate-reveal" style={{ animationDelay: '400ms' }}>
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Transações Recentes</h3>
@@ -142,7 +130,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mini Insight IA */}
         <div className="glass-card rounded-xl p-6 bg-primary/5 border-primary/20 animate-reveal" style={{ animationDelay: '600ms' }}>
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
             <TrendingUp className="w-5 h-5 text-primary" />
