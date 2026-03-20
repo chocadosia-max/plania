@@ -10,18 +10,27 @@ const MESES_NOMES = [
 ];
 
 function identificarMesAno(nome: string) {
-  const norm = nome.toUpperCase().replace(/[\s\/-]/g, '').trim();
+  // Normalização: remove acentos, espaços e pontuação, tudo para maiúsculo
+  const norm = nome.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
   
   for (let i = 0; i < MESES_NOMES.length; i++) {
     const variacoes = MESES_NOMES[i];
-    // Verifica se o nome da aba começa com alguma variação do mês
-    if (variacoes.some(v => norm.startsWith(v))) {
-      // Tenta extrair o ano (ex: 26 ou 2026) do final da string
-      const anoMatch = norm.match(/\d{2,4}$/);
-      let ano = 2026; // Ano padrão caso não encontre
-      if (anoMatch) {
-        const val = anoMatch[0];
-        ano = val.length === 2 ? 2000 + parseInt(val) : parseInt(val);
+    // Verifica se o nome da aba contém o mês em qualquer posição
+    if (variacoes.some(v => norm.includes(v))) {
+      // Busca por números que pareçam anos (25, 26, 2025, 2026)
+      const numeros = norm.match(/\d+/g);
+      let ano = 2026; // Padrão
+      
+      if (numeros) {
+        for (const num of numeros) {
+          if (num === "25" || num === "26" || num === "2025" || num === "2026") {
+            ano = num.length === 2 ? 2000 + parseInt(num) : parseInt(num);
+            break;
+          }
+        }
       }
       return { mes: i, ano };
     }
@@ -72,6 +81,7 @@ export async function processarPlanilhaEspecializada(file: File) {
 
     if (periodo) {
       const transacoesAba = [];
+      // Busca o saldo na primeira linha (coluna P ou O)
       const saldoPlanilha = parseMoeda(rows[0]?.[15] || rows[0]?.[14] || 0);
 
       rows.forEach((row, i) => {
@@ -80,7 +90,7 @@ export async function processarPlanilhaEspecializada(file: File) {
         // --- GASTO FIXO (B a G) ---
         const nomeFixo = row[1];
         const valorFixo = parseMoeda(row[6]);
-        if (nomeFixo && valorFixo > 0 && !['descrição', 'descricao'].includes(String(nomeFixo).toLowerCase())) {
+        if (nomeFixo && valorFixo > 0 && !['descrição', 'descricao', 'total'].includes(String(nomeFixo).toLowerCase())) {
           transacoesAba.push({
             id: `fixo_${nomeAba}_${i}`,
             descricao: String(nomeFixo).trim(),
@@ -96,7 +106,7 @@ export async function processarPlanilhaEspecializada(file: File) {
         // --- GASTO VARIÁVEL (I a M) ---
         const nomeVar = row[8];
         const valorVar = parseMoeda(row[12]);
-        if (nomeVar && valorVar > 0 && !['descrição', 'descricao'].includes(String(nomeVar).toLowerCase())) {
+        if (nomeVar && valorVar > 0 && !['descrição', 'descricao', 'total'].includes(String(nomeVar).toLowerCase())) {
           transacoesAba.push({
             id: `var_${nomeAba}_${i}`,
             descricao: String(nomeVar).trim(),
@@ -112,7 +122,7 @@ export async function processarPlanilhaEspecializada(file: File) {
         // --- RECEITA (O a P) ---
         const labelRec = row[14];
         const valorRec = parseMoeda(row[15]);
-        const ignorar = ['variável', 'variavel', 'entradas', 'salário', 'salario', 'total', 'descrição', 'descricao'];
+        const ignorar = ['variável', 'variavel', 'entradas', 'salário', 'salario', 'total', 'descrição', 'descricao', 'saldo'];
         
         if (labelRec && valorRec > 0 && !ignorar.includes(String(labelRec).toLowerCase())) {
           transacoesAba.push({
@@ -143,10 +153,10 @@ export async function processarPlanilhaEspecializada(file: File) {
       }
     }
 
-    // ABA DÍVIDAS (Flexível com o nome)
-    if (normAba.includes('DÍVIDA') || normAba.includes('DIVIDA')) {
+    // ABA DÍVIDAS
+    if (normAba.includes('DIVIDA') || normAba.includes('DÍVIDA')) {
       rows.forEach((row, i) => {
-        if (row && row[1] && row[2] && i > 0 && !['credor', 'descrição'].includes(String(row[1]).toLowerCase())) {
+        if (row && row[1] && row[2] && i > 0 && !['credor', 'descrição', 'descricao'].includes(String(row[1]).toLowerCase())) {
           resultado.dividas.push({
             id: `div_${i}`,
             credor: row[1],
@@ -158,7 +168,7 @@ export async function processarPlanilhaEspecializada(file: File) {
       });
     }
 
-    // ALUNOS (RUSSO / VIOLINO)
+    // ALUNOS
     if (normAba.includes('RUSSO') || normAba.includes('VIOLINO')) {
       rows.forEach((row, i) => {
         if (row && row[0] && i > 0 && !['aluno', 'nome'].includes(String(row[0]).toLowerCase())) {
