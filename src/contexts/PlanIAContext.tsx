@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { AnalysisResult } from "@/lib/analyzer";
+import { startOfMonth, startOfYear } from "date-fns";
 
 export interface DynamicTab {
   id: string;
@@ -21,6 +22,12 @@ interface PlanIAContextType {
   analysis: AnalysisResult | null;
   isSyncing: boolean;
   lastSync: Date | null;
+  // Novos estados de período
+  viewType: 'month' | 'year';
+  selectedDate: Date;
+  setViewType: (type: 'month' | 'year') => void;
+  setSelectedDate: (date: Date) => void;
+  
   importData: (data: any[], mode: 'add' | 'replace') => void;
   setAnalysis: (a: AnalysisResult | null) => void;
   addTransaction: (t: any) => void;
@@ -57,6 +64,10 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
+  // Estados de Período
+  const [viewType, setViewType] = useState<'month' | 'year'>('month');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
   useEffect(() => {
     localStorage.setItem("plania_transacoes", JSON.stringify(transactions));
     localStorage.setItem("plania_metas", JSON.stringify(goals));
@@ -67,15 +78,10 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const importData = (data: any[], mode: 'add' | 'replace') => {
     setIsSyncing(true);
-    // Simula processamento para feedback visual
     setTimeout(() => {
       const cleanData = Array.isArray(data) ? data : [];
-      
-      if (mode === 'replace') {
-        setTransactions(cleanData);
-      } else {
-        setTransactions(prev => [...cleanData, ...prev]);
-      }
+      if (mode === 'replace') setTransactions(cleanData);
+      else setTransactions(prev => [...cleanData, ...prev]);
       
       if (analysis) {
         const newTabs: DynamicTab[] = [];
@@ -95,29 +101,16 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsSyncing(false);
       setLastSync(new Date());
       localStorage.setItem("plania-show-import-success", "true");
-      
-      // Salva resumo para o card de sucesso no dashboard
-      const summary = {
-        count: cleanData.length,
-        income: cleanData.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + t.valor, 0),
-        expenses: cleanData.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + t.valor, 0),
-        savings: cleanData.filter(t => t.tipo === 'receita').reduce((acc, t) => acc + t.valor, 0) - cleanData.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + t.valor, 0)
-      };
-      localStorage.setItem("plania-adapted-summary", JSON.stringify(summary));
-      
       toast.success("Importação concluída com sucesso! 🚀");
     }, 1000);
   };
 
   const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
   const deleteTransaction = (id: string) => setTransactions(prev => prev.filter(t => t.id !== id));
-  
   const addGoal = (g: any) => setGoals(prev => [{ ...g, id: Date.now().toString() }, ...prev]);
   const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
-  
   const addBudget = (b: any) => setBudgets(prev => [{ ...b, id: Date.now().toString() }, ...prev]);
   const deleteBudget = (id: string) => setBudgets(prev => prev.filter(b => b.id !== id));
-  
   const addInvestment = (i: any) => setInvestments(prev => [{ ...i, id: Date.now().toString() }, ...prev]);
   const deleteInvestment = (id: string) => setInvestments(prev => prev.filter(i => i.id !== id));
 
@@ -130,6 +123,7 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <PlanIAContext.Provider value={{ 
       transactions, goals, budgets, investments, dynamicTabs, analysis, isSyncing, lastSync,
+      viewType, selectedDate, setViewType, setSelectedDate,
       importData, setAnalysis, addTransaction, deleteTransaction, addGoal, deleteGoal, 
       addBudget, deleteBudget, addInvestment, deleteInvestment, getBudgetSpent
     }}>

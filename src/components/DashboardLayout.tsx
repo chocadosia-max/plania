@@ -12,11 +12,8 @@ import { usePlanIA } from "@/contexts/PlanIAContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const currentMonth = months[new Date().getMonth()];
-  const { isSyncing, lastSync, transactions } = usePlanIA();
+  const { isSyncing, lastSync, transactions, viewType, selectedDate } = usePlanIA();
   usePageTitle();
 
   const [userName, setUserName] = useState(() => localStorage.getItem("plania-user-name") || "Mariana");
@@ -52,10 +49,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-4">
                 <div>
                   <h1 className="text-base font-bold text-foreground">Olá, {userName} 👋</h1>
-                  <p className="text-[11px] text-muted-foreground -mt-0.5">{currentMonth} 2026</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest -mt-0.5">
+                    {viewType === 'month' 
+                      ? format(selectedDate, "MMMM yyyy", { locale: ptBR }) 
+                      : `Ano de ${format(selectedDate, "yyyy")}`}
+                  </p>
                 </div>
                 
-                {/* Sync Indicator */}
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 border border-border/40">
                   {isSyncing ? (
                     <>
@@ -66,7 +66,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <>
                       <CheckCircle2 className="w-3 h-3 text-green-500" />
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        Sincronizado · {transactions.length} itens · {format(lastSync, "HH:mm")}
+                        {transactions.length} itens · {format(lastSync, "HH:mm")}
                       </span>
                     </>
                   ) : null}
