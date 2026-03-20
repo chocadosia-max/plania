@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-  FileSpreadsheet, Globe, ArrowLeft, ShieldCheck, Sparkles, CheckCircle2, AlertTriangle, Cloud
+  FileSpreadsheet, Globe, ArrowLeft, ShieldCheck, Sparkles, CheckCircle2, AlertTriangle, Cloud, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,11 +12,12 @@ import { AutoAdaptationLoading } from "@/components/import/AutoAdaptationLoading
 import { usePlanIA } from "@/contexts/PlanIAContext";
 import { useNavigate } from 'react-router-dom';
 import { processarPlanilhaEspecializada } from "@/lib/import-engine";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function Importar() {
   const [step, setStep] = useState<'source' | 'upload-excel' | 'upload-gsheets' | 'analysis' | 'adapting'>('source');
   const [pendingData, setPendingData] = useState<any>(null);
-  const { importData } = usePlanIA();
+  const { importData, clearAllData } = usePlanIA();
   const navigate = useNavigate();
 
   const handleDataLoaded = async (file: File) => {
@@ -42,7 +43,7 @@ export default function Importar() {
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-12 animate-reveal">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-12 gap-4 animate-reveal">
         <div className="flex items-center gap-4">
           {step !== 'source' && (
             <Button variant="ghost" size="icon" onClick={() => setStep('source')} className="rounded-full">
@@ -54,6 +55,30 @@ export default function Importar() {
             <p className="text-muted-foreground text-sm">Sincronização ultra-precisa com sua estrutura</p>
           </div>
         </div>
+
+        {step === 'source' && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
+                <Trash2 className="w-4 h-4" /> Limpar dados atuais
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Resetar tudo?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso apagará todas as transações, metas e configurações atuais para você começar do zero.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={clearAllData} className="bg-destructive text-white hover:bg-destructive/90">
+                  Sim, limpar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {step === 'source' && (
