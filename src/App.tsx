@@ -18,6 +18,7 @@ import Relatorios from "./pages/Relatorios";
 import InsightDetail from "./pages/InsightDetail";
 import Onboarding from "./pages/Onboarding";
 import Importar from "./pages/Importar";
+import DynamicPage from "./pages/DynamicPage";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -41,20 +42,14 @@ const App = () => (
               <Route path="/dashboard/transacoes" element={<DashWrap><Transacoes /></DashWrap>} />
               <Route path="/dashboard/metas" element={<DashWrap><Metas /></DashWrap>} />
               <Route path="/dashboard/orcamentos" element={<DashWrap><Orcamentos /></DashWrap>} />
-              <Route 
-                path="/dashboard/investimentos" 
-                element={
-                  <DashWrap>
-                    <ErrorBoundary>
-                      <Investimentos />
-                    </ErrorBoundary>
-                  </DashWrap>
-                } 
-              />
+              <Route path="/dashboard/investimentos" element={<DashWrap><Investimentos /></DashWrap>} />
               <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
               <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
               <Route path="/dashboard/relatorios/insight/:id" element={<DashWrap><InsightDetail /></DashWrap>} />
               <Route path="/dashboard/importar" element={<DashWrap><Importar /></DashWrap>} />
+              
+              {/* Rota Dinâmica para abas geradas pela planilha */}
+              <Route path="/dashboard/:id" element={<DashWrap><DynamicPage /></DashWrap>} />
               
               <Route path="/themes" element={<Themes />} />
               <Route path="*" element={<NotFound />} />
