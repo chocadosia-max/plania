@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Transacoes from "./pages/Transacoes";
 import Metas from "./pages/Metas";
+import Orcamentos from "./pages/Orcamentos";
+import Investimentos from "./pages/Investimentos";
 import Themes from "./pages/Themes";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/dashboard" element={<DashWrap><Dashboard /></DashWrap>} />
             <Route path="/dashboard/transacoes" element={<DashWrap><Transacoes /></DashWrap>} />
             <Route path="/dashboard/metas" element={<DashWrap><Metas /></DashWrap>} />
+            <Route path="/dashboard/orcamentos" element={<DashWrap><Orcamentos /></DashWrap>} />
+            <Route path="/dashboard/investimentos" element={<DashWrap><Investimentos /></DashWrap>} />
             <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
             <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
             
