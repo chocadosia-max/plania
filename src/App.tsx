@@ -27,11 +27,14 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            
+            {/* Rotas do Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/transacoes" element={<DashWrap><Transacoes /></DashWrap>} />
             <Route path="/dashboard/metas" element={<DashWrap><Metas /></DashWrap>} />
             <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />
             <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
+            
             <Route path="/themes" element={<Themes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
