@@ -6,14 +6,14 @@ import { PageTransition } from "@/components/PageTransition";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Palette, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Palette } from "lucide-react";
 import { AIChatPanel } from "@/components/AIChatPanel";
 import { usePlanIA } from "@/contexts/PlanIAContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isSyncing, lastSync, transactions, viewType, selectedDate } = usePlanIA();
+  const { transactions, viewType, selectedDate } = usePlanIA();
   usePageTitle();
 
   const [userName, setUserName] = useState(() => localStorage.getItem("plania-user-name") || "Mariana");
@@ -57,19 +57,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 border border-border/40">
-                  {isSyncing ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 text-primary animate-spin" />
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Sincronizando...</span>
-                    </>
-                  ) : lastSync ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3 text-green-500" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        {transactions.length} itens · {format(lastSync, "HH:mm")}
-                      </span>
-                    </>
-                  ) : null}
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    {transactions.length} transações registradas
+                  </span>
                 </div>
               </div>
 

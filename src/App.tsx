@@ -19,7 +19,6 @@ import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import InsightDetail from "./pages/InsightDetail";
 import Onboarding from "./pages/Onboarding";
-import Importar from "./pages/Importar";
 import Dividas from "./pages/Dividas";
 import Clientes from "./pages/Clientes";
 import DynamicPage from "./pages/DynamicPage";
@@ -106,11 +105,6 @@ const App = () => (
                 <Route path="/dashboard/relatorios/insight/:id" element={
                   <ProtectedRoute>
                     <DashWrap><InsightDetail /></DashWrap>
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/importar" element={
-                  <ProtectedRoute>
-                    <DashWrap><Importar /></DashWrap>
                   </ProtectedRoute>
                 } />
                 <Route path="/dashboard/dividas" element={

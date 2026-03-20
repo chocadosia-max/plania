@@ -3,9 +3,8 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Share2, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { useDadosFinanceiros, Periodo } from "@/hooks/useDadosFinanceiros";
 import { usePlanIA } from "@/contexts/PlanIAContext";
 import { format, addMonths, subMonths, addYears, subYears } from "date-fns";
@@ -17,12 +16,6 @@ import { EvolutionChart } from "@/components/reports/EvolutionChart";
 import { CategoryCharts } from "@/components/reports/CategoryCharts";
 import { ComparisonChart } from "@/components/reports/ComparisonChart";
 import { AIInsightsSection } from "@/components/reports/AIInsightsSection";
-import { ExportFooter } from "@/components/reports/ExportFooter";
-
-const periods = [
-  { id: 'mes', label: 'Mês' },
-  { id: 'ano', label: 'Anual' },
-];
 
 const Relatorios = () => {
   const { selectedDate, setSelectedDate, viewType, setViewType } = usePlanIA();
@@ -37,11 +30,6 @@ const Relatorios = () => {
 
   const handlePrev = () => setSelectedDate(viewType === 'month' ? subMonths(selectedDate, 1) : subYears(selectedDate, 1));
   const handleNext = () => setSelectedDate(viewType === 'month' ? addMonths(selectedDate, 1) : addYears(selectedDate, 1));
-
-  const handleExport = (type: string) => {
-    if (type === 'PDF') window.print();
-    else toast.success(`Exportando relatório em ${type}... 🚀`);
-  };
 
   // Adaptação dos dados para os componentes existentes
   const reportData = {
@@ -96,15 +84,6 @@ const Relatorios = () => {
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext}><ChevronRight className="w-4 h-4" /></Button>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Excel')}>
-              <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('PDF')}>
-              <FileText className="w-3.5 h-3.5 text-red-400" /> PDF
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -113,7 +92,6 @@ const Relatorios = () => {
       <CategoryCharts />
       <ComparisonChart />
       <AIInsightsSection />
-      <ExportFooter />
     </div>
   );
 };
