@@ -7,6 +7,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Palette } from "lucide-react";
+import { AIChatPanel } from "@/components/AIChatPanel";
 
 const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -79,6 +80,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile navigation */}
         <BottomNav />
+
+        {/* Global AI Assistant */}
+        <AIChatPanel />
       </div>
     </SidebarProvider>
   );

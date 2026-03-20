@@ -13,7 +13,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AIChatPanel } from "@/components/AIChatPanel";
 import { QuickLaunchBar } from "@/components/QuickLaunchBar";
 
 /* ─── data ─── */
@@ -279,7 +278,6 @@ const Dashboard = () => {
       <div className="hidden md:block">
         <QuickLaunchBar />
       </div>
-      <AIChatPanel />
     </div>
   );
 };
