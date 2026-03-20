@@ -23,20 +23,37 @@ interface PlanIAContextType {
   lastSync: Date | null;
   importData: (data: any[], mode: 'add' | 'replace') => void;
   setAnalysis: (a: AnalysisResult | null) => void;
+  addTransaction: (t: any) => void;
   deleteTransaction: (id: string) => void;
+  addGoal: (g: any) => void;
   deleteGoal: (id: string) => void;
+  addBudget: (b: any) => void;
   deleteBudget: (id: string) => void;
+  addInvestment: (i: any) => void;
   deleteInvestment: (id: string) => void;
+  getBudgetSpent: (cat: string) => number;
 }
 
 const PlanIAContext = createContext<PlanIAContextType | undefined>(undefined);
 
+const safeParse = (key: string, fallback: any) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return fallback;
+    const parsed = JSON.parse(item);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (e) {
+    console.error(`Erro ao carregar ${key}:`, e);
+    return fallback;
+  }
+};
+
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<any[]>(() => JSON.parse(localStorage.getItem("plania_transacoes") || "[]"));
-  const [goals, setGoals] = useState<any[]>(() => JSON.parse(localStorage.getItem("plania_metas") || "[]"));
-  const [budgets, setBudgets] = useState<any[]>(() => JSON.parse(localStorage.getItem("plania_orcamentos") || "[]"));
-  const [investments, setInvestments] = useState<any[]>(() => JSON.parse(localStorage.getItem("plania_investimentos") || "[]"));
-  const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => JSON.parse(localStorage.getItem("plania_tabs") || "[]"));
+  const [transactions, setTransactions] = useState<any[]>(() => safeParse("plania_transacoes", []));
+  const [goals, setGoals] = useState<any[]>(() => safeParse("plania_metas", []));
+  const [budgets, setBudgets] = useState<any[]>(() => safeParse("plania_orcamentos", []));
+  const [investments, setInvestments] = useState<any[]>(() => safeParse("plania_investimentos", []));
+  const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => safeParse("plania_tabs", []));
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -51,15 +68,14 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const importData = (data: any[], mode: 'add' | 'replace') => {
     setIsSyncing(true);
-    // Simulação de processamento
     setTimeout(() => {
+      const cleanData = Array.isArray(data) ? data : [];
       if (mode === 'replace') {
-        setTransactions(data);
+        setTransactions(cleanData);
       } else {
-        setTransactions(prev => [...data, ...prev]);
+        setTransactions(prev => [...cleanData, ...prev]);
       }
       
-      // Atualizar abas baseadas na análise
       if (analysis) {
         const newTabs: DynamicTab[] = [];
         if (analysis.temDividas) newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
@@ -72,25 +88,37 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const filteredNew = newTabs.filter(t => !existingIds.includes(t.id));
           return [...prev, ...filteredNew];
         });
-
         localStorage.setItem("plania-user-type", analysis.perfil);
       }
-
       setIsSyncing(false);
       setLastSync(new Date());
-      toast.success("Dados importados e sistema adaptado! 🚀");
+      toast.success("Dados importados com sucesso! 🚀");
     }, 1500);
   };
 
+  const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
   const deleteTransaction = (id: string) => setTransactions(prev => prev.filter(t => t.id !== id));
+  
+  const addGoal = (g: any) => setGoals(prev => [{ ...g, id: Date.now().toString() }, ...prev]);
   const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
+  
+  const addBudget = (b: any) => setBudgets(prev => [{ ...b, id: Date.now().toString() }, ...prev]);
   const deleteBudget = (id: string) => setBudgets(prev => prev.filter(b => b.id !== id));
+  
+  const addInvestment = (i: any) => setInvestments(prev => [{ ...i, id: Date.now().toString() }, ...prev]);
   const deleteInvestment = (id: string) => setInvestments(prev => prev.filter(i => i.id !== id));
+
+  const getBudgetSpent = (cat: string) => {
+    return Math.abs(transactions
+      .filter(t => t.cat === cat && t.type === 'gasto')
+      .reduce((acc, t) => acc + (Number(t.value) || 0), 0));
+  };
 
   return (
     <PlanIAContext.Provider value={{ 
       transactions, goals, budgets, investments, dynamicTabs, analysis, isSyncing, lastSync,
-      importData, setAnalysis, deleteTransaction, deleteGoal, deleteBudget, deleteInvestment
+      importData, setAnalysis, addTransaction, deleteTransaction, addGoal, deleteGoal, 
+      addBudget, deleteBudget, addInvestment, deleteInvestment, getBudgetSpent
     }}>
       {children}
     </PlanIAContext.Provider>

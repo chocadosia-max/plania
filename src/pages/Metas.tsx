@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { MoreVertical, Edit2, CheckCircle2, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { usePlanIA } from "@/contexts/PlanIAContext";
 
 export default function Metas() {
@@ -20,6 +20,8 @@ export default function Metas() {
     prazo: "",
     cor: "#7c3aed"
   });
+
+  const safeGoals = Array.isArray(goals) ? goals : [];
 
   const handleSave = () => {
     if (!form.nome || !form.valorAlvo) return;
@@ -80,19 +82,21 @@ export default function Metas() {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        {goals.map((g, i) => {
-          const pct = Math.min(Math.round((g.valorAtual / g.valorAlvo) * 100), 100);
+        {safeGoals.map((g, i) => {
+          const target = Number(g?.valorAlvo) || 1;
+          const current = Number(g?.valorAtual) || 0;
+          const pct = Math.min(Math.round((current / target) * 100), 100);
           return (
-            <div key={g.id} className="glass-card rounded-xl p-5 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group animate-reveal" style={{ animationDelay: `${i * 100}ms` }}>
+            <div key={g?.id || i} className="glass-card rounded-xl p-5 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group animate-reveal" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="flex items-start justify-between mb-3 relative z-20">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{g.emoji}</span>
+                  <span className="text-2xl">{g?.emoji || "🎯"}</span>
                   <div>
-                    <h3 className="font-semibold text-foreground text-sm">{g.nome}</h3>
-                    <p className="text-[11px] text-muted-foreground">{pct}% concluído · Alvo: R$ {g.valorAlvo.toLocaleString('pt-BR')}</p>
+                    <h3 className="font-semibold text-foreground text-sm">{g?.nome || "Sem nome"}</h3>
+                    <p className="text-[11px] text-muted-foreground">{pct}% concluído · Alvo: R$ {target.toLocaleString('pt-BR')}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteGoal(g.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteGoal(g?.id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -101,8 +105,8 @@ export default function Metas() {
                   <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                  <span>Atual: R$ {g.valorAtual.toLocaleString('pt-BR')}</span>
-                  <span>Prazo: {g.prazo}</span>
+                  <span>Atual: R$ {current.toLocaleString('pt-BR')}</span>
+                  <span>Prazo: {g?.prazo || "Sem prazo"}</span>
                 </div>
               </div>
             </div>

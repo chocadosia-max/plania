@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Plus, History, Trash2 } from "lucide-react";
+import React, { useState } from 'react';
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,8 @@ export default function Orcamentos() {
     cor: "#7c3aed",
     recorrente: true
   });
+
+  const safeBudgets = Array.isArray(budgets) ? budgets : [];
 
   const handleSave = () => {
     if (!form.categoria || !form.limite) return;
@@ -84,9 +86,10 @@ export default function Orcamentos() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map((b, i) => {
-          const spent = getBudgetSpent(b.categoria);
-          const pct = b.limite > 0 ? Math.round((spent / b.limite) * 100) : 0;
+        {safeBudgets.map((b, i) => {
+          const spent = getBudgetSpent(b?.categoria || "");
+          const limit = Number(b?.limite) || 1;
+          const pct = Math.round((spent / limit) * 100);
           
           let statusClass = "status-ok";
           if (pct >= 100) statusClass = "status-estourado";
@@ -94,16 +97,16 @@ export default function Orcamentos() {
           else if (pct >= 60) statusClass = "status-atencao";
 
           return (
-            <div key={b.id} className={cn("orcamento-card rounded-2xl p-5 space-y-4 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden animate-reveal", statusClass)} style={{ animationDelay: `${i * 80}ms` }}>
+            <div key={b?.id || i} className={cn("orcamento-card rounded-2xl p-5 space-y-4 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden animate-reveal", statusClass)} style={{ animationDelay: `${i * 80}ms` }}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-xl">{b.emoji}</div>
+                  <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-xl">{b?.emoji || "💰"}</div>
                   <div>
-                    <h4 className="text-sm font-bold text-foreground">{b.categoria}</h4>
-                    <Badge variant="outline" className="text-[9px] font-black uppercase border-none px-0">Limite: R$ {b.limite.toLocaleString('pt-BR')}</Badge>
+                    <h4 className="text-sm font-bold text-foreground">{b?.categoria || "Sem categoria"}</h4>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase border-none px-0">Limite: R$ {limit.toLocaleString('pt-BR')}</Badge>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteBudget(b.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteBudget(b?.id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>

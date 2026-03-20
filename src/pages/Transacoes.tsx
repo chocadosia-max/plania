@@ -36,18 +36,21 @@ export default function Transacoes() {
     recorrente: false
   });
 
+  // Proteção: Garante que transactions seja sempre um array
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => 
-      t.desc.toLowerCase().includes(search.toLowerCase()) || 
-      t.cat.toLowerCase().includes(search.toLowerCase())
+    return safeTransactions.filter(t => 
+      (t?.desc || "").toLowerCase().includes(search.toLowerCase()) || 
+      (t?.cat || "").toLowerCase().includes(search.toLowerCase())
     );
-  }, [transactions, search]);
+  }, [safeTransactions, search]);
 
   const totals = useMemo(() => {
-    const receitas = transactions.filter(t => t.type === 'receita').reduce((acc, t) => acc + t.value, 0);
-    const gastos = transactions.filter(t => t.type === 'gasto').reduce((acc, t) => acc + Math.abs(t.value), 0);
+    const receitas = safeTransactions.filter(t => t?.type === 'receita').reduce((acc, t) => acc + (Number(t?.value) || 0), 0);
+    const gastos = safeTransactions.filter(t => t?.type === 'gasto').reduce((acc, t) => acc + Math.abs(Number(t?.value) || 0), 0);
     return { receitas, gastos, saldo: receitas - gastos };
-  }, [transactions]);
+  }, [safeTransactions]);
 
   const handleSave = () => {
     if (!form.value || !form.desc) return;
@@ -174,18 +177,18 @@ export default function Transacoes() {
           </div>
         ) : (
           filteredTransactions.map((t, i) => (
-            <div key={t.id} className="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/40 transition-all duration-300 animate-reveal" style={{ animationDelay: `${i * 30}ms` }}>
-              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm", categories.find(c => c.id === t.cat)?.color || "bg-slate-500")}>
-                {categories.find(c => c.id === t.cat)?.emoji || "🎁"}
+            <div key={t?.id || i} className="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/40 transition-all duration-300 animate-reveal" style={{ animationDelay: `${i * 30}ms` }}>
+              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm", categories.find(c => c.id === t?.cat)?.color || "bg-slate-500")}>
+                {categories.find(c => c.id === t?.cat)?.emoji || "🎁"}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-foreground truncate">{t.desc}</h4>
-                <p className="text-[11px] text-muted-foreground">{t.cat} · {t.date}</p>
+                <h4 className="text-sm font-bold text-foreground truncate">{t?.desc || "Sem descrição"}</h4>
+                <p className="text-[11px] text-muted-foreground">{t?.cat || "Sem categoria"} · {t?.date || ""}</p>
               </div>
-              <div className={cn("text-sm font-black font-mono-financial", t.type === 'receita' ? "text-green-500" : "text-red-400")}>
-                {t.type === 'receita' ? '+' : '-'} R$ {Math.abs(t.value).toLocaleString('pt-BR')}
+              <div className={cn("text-sm font-black font-mono-financial", t?.type === 'receita' ? "text-green-500" : "text-red-400")}>
+                {t?.type === 'receita' ? '+' : '-'} R$ {Math.abs(Number(t?.value) || 0).toLocaleString('pt-BR')}
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteTransaction(t.id)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteTransaction(t?.id)}>
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
