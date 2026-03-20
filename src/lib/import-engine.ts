@@ -2,146 +2,143 @@
 
 import * as XLSX from 'xlsx';
 
-// 1. Varredura Total da Planilha
-export async function varrerPlanilha(file: File) {
+const MAPA_MESES: Record<string, { mes: number, ano: number }> = {
+  'JAN26': { mes: 0, ano: 2026 }, 'FEV26': { mes: 1, ano: 2026 }, 'MAR26': { mes: 2, ano: 2026 },
+  'ABR26': { mes: 3, ano: 2026 }, 'MAI26': { mes: 4, ano: 2026 }, 'JUN26': { mes: 5, ano: 2026 },
+  'JUL26': { mes: 6, ano: 2026 }, 'AGO26': { mes: 7, ano: 2026 }, 'SET26': { mes: 8, ano: 2026 },
+  'OUT26': { mes: 9, ano: 2026 }, 'NOV26': { mes: 10, ano: 2026 }, 'DEZ26': { mes: 11, ano: 2026 },
+};
+
+export async function processarPlanilhaEspecializada(file: File) {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer);
+  const workbook = XLSX.read(buffer, { cellDates: true });
   
-  const todasAbas: Record<string, any> = {};
-  
-  workbook.SheetNames.forEach(nomeAba => {
-    const aba = workbook.Sheets[nomeAba];
-    todasAbas[nomeAba] = {
-      comCabecalho: XLSX.utils.sheet_to_json(aba, { header: 1 }),
-      raw: XLSX.utils.sheet_to_json(aba, { raw: false, defval: "" })
-    };
-  });
-  
-  return todasAbas;
-}
-
-// 2. Filtrar Linhas Válidas
-function filtrarLinhasValidas(linhas: any[]) {
-  const palavrasIgnorar = [
-    "receitas fixas", "receitas variaveis", "gastos fixos", "gastos variaveis",
-    "total", "subtotal", "soma", "resumo", "categoria", "descricao", "descrição",
-    "data", "valor", "tipo", "mes", "mês", "janeiro", "fevereiro", "marco", "março",
-    "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-    "total mensal", "total anual", "saldo", "resultado", "outro possivel", "outro possível",
-    "renda fixa", "renda variavel", "renda variável"
-  ];
-  
-  return linhas.filter(linha => {
-    const textos = Object.values(linha).map(v => v?.toString().toLowerCase().trim() || "");
-    const ehCabecalho = textos.some(t => palavrasIgnorar.some(p => t === p || t.startsWith(p)));
-    if (ehCabecalho) return false;
-    
-    const temValorReal = Object.values(linha).some(v => {
-      const num = parseFloat(v?.toString().replace("R$", "").replace(/\./g, "").replace(",", ".").trim() || "0");
-      return !isNaN(num) && num !== 0;
-    });
-    if (!temValorReal) return false;
-    
-    return Object.values(linha).some(v => v !== "" && v !== null && v !== undefined);
-  });
-}
-
-// 3. Detectar Colunas Reais
-export function detectarColunas(linhas: any[]) {
-  if (!linhas || linhas.length === 0) return null;
-  const cabecalho = Object.keys(linhas[0] || {}).map(c => c.toString().toLowerCase().trim());
-  
-  return {
-    data: cabecalho.find(c => c.includes("data") || c.includes("date") || c.includes("dia") || c.includes("quando") || c.includes("dt")),
-    descricao: cabecalho.find(c => c.includes("descri") || c.includes("histor") || c.includes("nome") || c.includes("titulo") || c.includes("lancamento") || c.includes("item") || c.includes("produto") || c.includes("o que") || c.includes("memo") || c.includes("detail")),
-    valor: cabecalho.find(c => c.includes("valor") || c.includes("value") || c.includes("amount") || c.includes("preco") || c.includes("preço") || c.includes("total") || c.includes("quantia") || c.includes("quanto") || c.includes("r$") || c.includes("reais")),
-    tipo: cabecalho.find(c => c.includes("tipo") || c.includes("type") || c.includes("natureza") || c.includes("operacao") || c.includes("moviment") || c.includes("entrada") || c.includes("saida")),
-    categoria: cabecalho.find(c => c.includes("categ") || c.includes("tag") || c.includes("grupo") || c.includes("class") || c.includes("setor"))
+  const resultado = {
+    transacoes: [] as any[],
+    dividas: [] as any[],
+    clientes: [] as any[],
+    receitasAnuais: [] as any[],
+    validacao: [] as any[]
   };
-}
 
-// 4. Encontrar Descrição Real
-function encontrarDescricao(linha: any, mapa: any) {
-  if (mapa.descricao && linha[mapa.descricao]) return linha[mapa.descricao].toString().trim();
-  const nomesDescricao = ["descricao", "descrição", "description", "historico", "histórico", "memo", "detalhe", "nome", "titulo", "lancamento", "item", "produto", "estabelecimento", "local"];
-  const chavesLinha = Object.keys(linha);
-  for (const nome of nomesDescricao) {
-    const chave = chavesLinha.find(k => k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().includes(nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
-    if (chave && linha[chave] && linha[chave].toString().trim() !== "") return linha[chave].toString().trim();
-  }
-  for (const chave of chavesLinha) {
-    const val = linha[chave]?.toString() || "";
-    const ehData = /\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(val) || /\d{4}[\/\-]\d{2}[\/\-]\d{2}/.test(val);
-    const ehNumero = !isNaN(parseFloat(val.replace("R$", "").replace(".", "").replace(",", ".").trim()));
-    if (!ehData && !ehNumero && val.trim() !== "" && val.length > 2) return val.trim();
-  }
-  return Object.entries(linha).filter(([k, v]) => {
-    const val = v?.toString() || "";
-    const ehNum = !isNaN(parseFloat(val.replace("R$", "").replace(".", "").replace(",", ".").trim()));
-    return !ehNum && val.trim() !== "" && val.length > 1;
-  }).map(([k, v]) => v!.toString().trim()).join(" | ") || null;
-}
+  workbook.SheetNames.forEach(nomeAba => {
+    const sheet = workbook.Sheets[nomeAba];
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-// 5. Formatar Datas
-export function formatarData(dataRaw: any) {
-  if (!dataRaw) return new Date().toLocaleDateString("pt-BR");
-  try {
-    const str = dataRaw.toString().trim();
-    if (str.includes("/")) {
-      const partes = str.split("/");
-      if (partes[2]?.length === 4) return str;
-    }
-    if (!isNaN(Number(str)) && Number(str) > 30000) {
-      const date = XLSX.SSF.parse_date_code(Number(str));
-      return `${String(date.d).padStart(2, "0")}/${String(date.m).padStart(2, "0")}/${date.y}`;
-    }
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) return d.toLocaleDateString("pt-BR");
-    return str;
-  } catch {
-    return new Date().toLocaleDateString("pt-BR");
-  }
-}
+    // 1. ABAS MENSAIS (JAN26 - DEZ26)
+    if (MAPA_MESES[nomeAba]) {
+      const periodo = MAPA_MESES[nomeAba];
+      
+      // Validação da Linha 1 (Totais)
+      const totalGastosPlanilha = parseFloat(rows[0]?.[3]) || 0;
+      const saldoPlanilha = parseFloat(rows[0]?.[15]) || 0;
 
-// 6. Extrair Dados Reais
-export function extrairDados(linhas: any[], mapa: any) {
-  const linhasValidas = filtrarLinhasValidas(linhas);
-  return linhasValidas.map((linha, index) => {
-    const descricaoReal = encontrarDescricao(linha, mapa);
-    const getByColunaReal = (campo: string) => {
-      const nomeColuna = mapa[campo];
-      if (!nomeColuna) return null;
-      const chaveReal = Object.keys(linha).find(k => k.toLowerCase().trim() === nomeColuna.toLowerCase().trim());
-      return chaveReal ? linha[chaveReal] : null;
-    };
-    
-    const valorRaw = getByColunaReal("valor");
-    const dataRaw = getByColunaReal("data");
-    const tipoRaw = getByColunaReal("tipo");
-    const catRaw = getByColunaReal("categoria");
-    
-    let valorLimpo = 0;
-    if (valorRaw) {
-      const vStr = valorRaw.toString().replace("R$", "").trim();
-      valorLimpo = vStr.includes(",") && vStr.includes(".") 
-        ? parseFloat(vStr.replace(/\./g, "").replace(",", "."))
-        : parseFloat(vStr.replace(",", "."));
+      const transacoesAba = [];
+      
+      // Pula cabeçalhos (começa na linha 5 / índice 4)
+      rows.slice(4).forEach((row, i) => {
+        // --- GASTO FIXO (B-G) ---
+        const nomeFixo = row[1];
+        const valorFixo = parseFloat(row[6]);
+        if (nomeFixo && valorFixo > 0) {
+          const dia = parseInt(row[3]) || 1;
+          transacoesAba.push({
+            id: `fixo_${nomeAba}_${i}`,
+            descricao: String(nomeFixo).trim(),
+            valor: valorFixo,
+            tipo: 'gasto',
+            subtipo: 'fixo',
+            categoria: row[5] || 'Outros',
+            formaPagamento: row[4] || '',
+            pago: row[2] === true || String(row[2]).toLowerCase() === 'true',
+            data: `${String(dia).padStart(2, '0')}/${String(periodo.mes + 1).padStart(2, '0')}/${periodo.ano}`,
+            dadosOriginais: row
+          });
+        }
+
+        // --- GASTO VARIÁVEL (I-M) ---
+        const nomeVar = row[8];
+        const valorVar = parseFloat(row[12]);
+        if (nomeVar && valorVar > 0) {
+          let dataFmt = `01/${String(periodo.mes + 1).padStart(2, '0')}/${periodo.ano}`;
+          if (row[9] instanceof Date) {
+            dataFmt = `${String(row[9].getDate()).padStart(2, '0')}/${String(row[9].getMonth() + 1).padStart(2, '0')}/${row[9].getFullYear()}`;
+          }
+          transacoesAba.push({
+            id: `var_${nomeAba}_${i}`,
+            descricao: String(nomeVar).trim(),
+            valor: valorVar,
+            tipo: 'gasto',
+            subtipo: 'variavel',
+            categoria: row[11] || 'Outros',
+            formaPagamento: row[10] || '',
+            pago: true,
+            data: dataFmt,
+            dadosOriginais: row
+          });
+        }
+
+        // --- RECEITA (O-P) ---
+        const labelRec = row[14];
+        const valorRec = parseFloat(row[15]);
+        const labelsIgnorar = ['variável', 'variavel', 'entradas', 'salário', 'salario'];
+        if (labelRec && valorRec > 0 && !labelsIgnorar.includes(String(labelRec).toLowerCase())) {
+          transacoesAba.push({
+            id: `rec_${nomeAba}_${i}`,
+            descricao: String(labelRec).trim(),
+            valor: valorRec,
+            tipo: 'receita',
+            categoria: 'Receita',
+            data: `01/${String(periodo.mes + 1).padStart(2, '0')}/${periodo.ano}`,
+            dadosOriginais: row
+          });
+        }
+      });
+
+      resultado.transacoes.push(...transacoesAba);
+      
+      // Cálculo de validação
+      const recCalc = transacoesAba.filter(t => t.tipo === 'receita').reduce((s, t) => s + t.valor, 0);
+      const gasCalc = transacoesAba.filter(t => t.tipo === 'gasto').reduce((s, t) => s + t.valor, 0);
+      resultado.validacao.push({
+        mes: nomeAba,
+        receita: recCalc,
+        gastos: gasCalc,
+        saldo: recCalc - gasCalc,
+        planilha: { gastos: totalGastosPlanilha, saldo: saldoPlanilha }
+      });
     }
-    
-    const tipoDetectado = tipoRaw
-      ? (tipoRaw.toString().toLowerCase().includes("recei") || tipoRaw.toString().toLowerCase().includes("credi") || tipoRaw.toString().toLowerCase().includes("entra") ? "receita" : "gasto")
-      : (valorLimpo >= 0 ? "receita" : "gasto");
-    
-    return {
-      id: `imp_${Date.now()}_${index}`,
-      descricao: descricaoReal || "—",
-      valor: Math.abs(valorLimpo || 0),
-      tipo: tipoDetectado,
-      categoria: catRaw ? catRaw.toString().trim() : "Outros",
-      data: formatarData(dataRaw),
-      origem: "importado",
-      // GUARDA TODOS OS DADOS ORIGINAIS
-      dadosOriginais: { ...linha }
-    };
-  }).filter(t => t.descricao !== "—" || t.valor > 0);
+
+    // 2. ABA DÍVIDAS
+    if (nomeAba === 'DÍVIDAS') {
+      rows.slice(1).forEach((row, i) => {
+        if (row[1] && row[2]) {
+          resultado.dividas.push({
+            id: `div_${i}`,
+            credor: row[1],
+            valorTotal: parseFloat(row[2]),
+            pagamentos: row.slice(3, 15).map(v => parseFloat(v) || 0),
+            saldoRestante: parseFloat(row[row.length - 1]) || 0
+          });
+        }
+      });
+    }
+
+    // 3. ABAS RUSSO / VIOLINO
+    if (nomeAba === 'RUSSO' || nomeAba === 'VIOLINO') {
+      rows.slice(1).forEach((row, i) => {
+        if (row[0]) {
+          resultado.clientes.push({
+            id: `${nomeAba.toLowerCase()}_${i}`,
+            nome: row[0],
+            instrumento: nomeAba === 'RUSSO' ? 'Russo' : 'Violino',
+            pagamentos: row.slice(1, 13).map(v => parseFloat(v) || 0),
+            totalAno: row.slice(1, 13).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+          });
+        }
+      });
+    }
+  });
+
+  return resultado;
 }

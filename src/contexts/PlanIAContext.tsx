@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
-import { AnalysisResult } from "@/lib/analyzer";
-import { startOfMonth, startOfYear } from "date-fns";
 
 export interface DynamicTab {
   id: string;
@@ -18,26 +16,20 @@ interface PlanIAContextType {
   goals: any[];
   budgets: any[];
   investments: any[];
+  dividas: any[];
+  clientes: any[];
   dynamicTabs: DynamicTab[];
-  analysis: AnalysisResult | null;
-  isSyncing: boolean;
-  lastSync: Date | null;
-  // Novos estados de período
   viewType: 'month' | 'year';
   selectedDate: Date;
   setViewType: (type: 'month' | 'year') => void;
   setSelectedDate: (date: Date) => void;
-  
-  importData: (data: any[], mode: 'add' | 'replace') => void;
-  setAnalysis: (a: AnalysisResult | null) => void;
+  importData: (data: any) => void;
   addTransaction: (t: any) => void;
   deleteTransaction: (id: string) => void;
   addGoal: (g: any) => void;
   deleteGoal: (id: string) => void;
   addBudget: (b: any) => void;
   deleteBudget: (id: string) => void;
-  addInvestment: (i: any) => void;
-  deleteInvestment: (id: string) => void;
   getBudgetSpent: (cat: string) => number;
 }
 
@@ -46,12 +38,8 @@ const PlanIAContext = createContext<PlanIAContextType | undefined>(undefined);
 const safeParse = (key: string, fallback: any) => {
   try {
     const item = localStorage.getItem(key);
-    if (!item) return fallback;
-    const parsed = JSON.parse(item);
-    return Array.isArray(parsed) ? parsed : fallback;
-  } catch (e) {
-    return fallback;
-  }
+    return item ? JSON.parse(item) : fallback;
+  } catch (e) { return fallback; }
 };
 
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -59,12 +47,9 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [goals, setGoals] = useState<any[]>(() => safeParse("plania_metas", []));
   const [budgets, setBudgets] = useState<any[]>(() => safeParse("plania_orcamentos", []));
   const [investments, setInvestments] = useState<any[]>(() => safeParse("plania_investimentos", []));
+  const [dividas, setDividas] = useState<any[]>(() => safeParse("plania_dividas", []));
+  const [clientes, setClientes] = useState<any[]>(() => safeParse("plania_clientes", []));
   const [dynamicTabs, setDynamicTabs] = useState<DynamicTab[]>(() => safeParse("plania_tabs", []));
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
-
-  // Estados de Período
   const [viewType, setViewType] = useState<'month' | 'year'>('month');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -73,36 +58,22 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem("plania_metas", JSON.stringify(goals));
     localStorage.setItem("plania_orcamentos", JSON.stringify(budgets));
     localStorage.setItem("plania_investimentos", JSON.stringify(investments));
+    localStorage.setItem("plania_dividas", JSON.stringify(dividas));
+    localStorage.setItem("plania_clientes", JSON.stringify(clientes));
     localStorage.setItem("plania_tabs", JSON.stringify(dynamicTabs));
-  }, [transactions, goals, budgets, investments, dynamicTabs]);
+  }, [transactions, goals, budgets, investments, dividas, clientes, dynamicTabs]);
 
-  const importData = (data: any[], mode: 'add' | 'replace') => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      const cleanData = Array.isArray(data) ? data : [];
-      if (mode === 'replace') setTransactions(cleanData);
-      else setTransactions(prev => [...cleanData, ...prev]);
-      
-      if (analysis) {
-        const newTabs: DynamicTab[] = [];
-        if (analysis.temDividas) newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
-        if (analysis.temEstoque) newTabs.push({ id: 'estoque', label: 'Estoque', icon: '📦', path: '/dashboard/estoque', isNew: true });
-        if (analysis.temClientes) newTabs.push({ id: 'clientes', label: 'Clientes', icon: '👥', path: '/dashboard/clientes', isNew: true });
-        if (analysis.temDRE) newTabs.push({ id: 'dre', label: 'DRE', icon: '📋', path: '/dashboard/dre', isNew: true });
-        
-        setDynamicTabs(prev => {
-          const existingIds = prev.map(t => t.id);
-          const filteredNew = newTabs.filter(t => !existingIds.includes(t.id));
-          return [...prev, ...filteredNew];
-        });
-        localStorage.setItem("plania-user-type", analysis.perfil);
-      }
-      
-      setIsSyncing(false);
-      setLastSync(new Date());
-      localStorage.setItem("plania-show-import-success", "true");
-      toast.success("Importação concluída com sucesso! 🚀");
-    }, 1000);
+  const importData = (data: any) => {
+    setTransactions(data.transacoes || []);
+    setDividas(data.dividas || []);
+    setClientes(data.clientes || []);
+    
+    const newTabs: DynamicTab[] = [];
+    if (data.dividas?.length > 0) newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
+    if (data.clientes?.length > 0) newTabs.push({ id: 'clientes', label: 'Clientes', icon: '👥', path: '/dashboard/clientes', isNew: true });
+    
+    setDynamicTabs(newTabs);
+    toast.success("Planilha importada com sucesso! 🚀");
   };
 
   const addTransaction = (t: any) => setTransactions(prev => [{ ...t, id: Date.now().toString() }, ...prev]);
@@ -111,8 +82,6 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteGoal = (id: string) => setGoals(prev => prev.filter(g => g.id !== id));
   const addBudget = (b: any) => setBudgets(prev => [{ ...b, id: Date.now().toString() }, ...prev]);
   const deleteBudget = (id: string) => setBudgets(prev => prev.filter(b => b.id !== id));
-  const addInvestment = (i: any) => setInvestments(prev => [{ ...i, id: Date.now().toString() }, ...prev]);
-  const deleteInvestment = (id: string) => setInvestments(prev => prev.filter(i => i.id !== id));
 
   const getBudgetSpent = (cat: string) => {
     return Math.abs(transactions
@@ -122,10 +91,9 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   return (
     <PlanIAContext.Provider value={{ 
-      transactions, goals, budgets, investments, dynamicTabs, analysis, isSyncing, lastSync,
+      transactions, goals, budgets, investments, dividas, clientes, dynamicTabs,
       viewType, selectedDate, setViewType, setSelectedDate,
-      importData, setAnalysis, addTransaction, deleteTransaction, addGoal, deleteGoal, 
-      addBudget, deleteBudget, addInvestment, deleteInvestment, getBudgetSpent
+      importData, addTransaction, deleteTransaction, addGoal, deleteGoal, addBudget, deleteBudget, getBudgetSpent
     }}>
       {children}
     </PlanIAContext.Provider>

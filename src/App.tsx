@@ -18,6 +18,8 @@ import Relatorios from "./pages/Relatorios";
 import InsightDetail from "./pages/InsightDetail";
 import Onboarding from "./pages/Onboarding";
 import Importar from "./pages/Importar";
+import Dividas from "./pages/Dividas";
+import Clientes from "./pages/Clientes";
 import DynamicPage from "./pages/DynamicPage";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
@@ -48,13 +50,12 @@ const App = () => (
                 <Route path="/dashboard/relatorios" element={<DashWrap><Relatorios /></DashWrap>} />
                 <Route path="/dashboard/relatorios/insight/:id" element={<DashWrap><InsightDetail /></DashWrap>} />
                 <Route path="/dashboard/importar" element={<DashWrap><Importar /></DashWrap>} />
+                <Route path="/dashboard/dividas" element={<DashWrap><Dividas /></DashWrap>} />
+                <Route path="/dashboard/clientes" element={<DashWrap><Clientes /></DashWrap>} />
                 
-                {/* Rota Dinâmica para abas geradas pela planilha */}
                 <Route path="/dashboard/:id" element={<DashWrap><DynamicPage /></DashWrap>} />
-                
                 <Route path="/themes" element={<Themes />} />
                 
-                {/* Rota 404 Personalizada */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-screen gap-6 text-[#F0F4FF] bg-[#080B14] p-6 text-center">
                     <span className="text-7xl">🔍</span>
