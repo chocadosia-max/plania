@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
+import { cn } from "@/lib/utils";
 
 const data = [
   { cat: 'Moradia', atual: 1800, anterior: 1400 },
