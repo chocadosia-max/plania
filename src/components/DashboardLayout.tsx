@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { AIChatPanel } from "@/components/AIChatPanel";
-import { QuickLaunchBar } from "@/components/QuickLaunchBar";
 import { BottomNav } from "@/components/BottomNav";
 import { PageTransition } from "@/components/PageTransition";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Palette, User } from "lucide-react";
+import { Palette } from "lucide-react";
 
 const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -36,12 +34,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background transition-colors duration-500">
-        {/* Sidebar hidden on mobile */}
+        {/* Sidebar shell */}
         <div className="hidden md:block">
           <AppSidebar />
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Header shell */}
           <header className="sticky top-0 z-40 glass-card border-b border-border/30 h-14 flex items-center px-4 gap-4">
             <div className="hidden md:block">
               <SidebarTrigger />
@@ -69,6 +68,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </header>
+
+          {/* Main content area - Only renders children */}
           <main className="flex-1 overflow-auto pb-24 md:pb-20">
             <PageTransition>
               {children}
@@ -76,13 +77,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        {/* Desktop: QuickLaunchBar, Mobile: BottomNav */}
-        <div className="hidden md:block">
-          <QuickLaunchBar />
-        </div>
+        {/* Mobile navigation */}
         <BottomNav />
-
-        <AIChatPanel />
       </div>
     </SidebarProvider>
   );

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, Download, Share2, FileSpreadsheet, FileText } from "lucide-react";
+import { Calendar as CalendarIcon, Share2, FileSpreadsheet, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-// Components
+// Components específicos de relatórios
 import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
 import { EvolutionChart } from "@/components/reports/EvolutionChart";
 import { CategoryCharts } from "@/components/reports/CategoryCharts";
@@ -39,7 +39,7 @@ const Relatorios = () => {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-8">
-        {/* HEADER */}
+        {/* HEADER DE RELATÓRIOS */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6" style={{ animation: "reveal 0.5s cubic-bezier(0.16,1,0.3,1) both" }}>
           <div className="space-y-1">
             <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ const Relatorios = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            {/* Period Selector */}
+            {/* Seletor de Período */}
             <div className="flex p-1 bg-muted/50 rounded-xl border border-border/40">
               {periods.map((p) => (
                 <button
@@ -70,7 +70,7 @@ const Relatorios = () => {
               ))}
             </div>
 
-            {/* Custom Date Picker */}
+            {/* Filtro de Data Personalizado */}
             {activePeriod === 'custom' && (
               <Popover>
                 <PopoverTrigger asChild>
@@ -97,7 +97,7 @@ const Relatorios = () => {
               </Popover>
             )}
 
-            {/* Export Buttons */}
+            {/* Botões de Exportação */}
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Excel')}>
                 <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel
@@ -112,22 +112,12 @@ const Relatorios = () => {
           </div>
         </div>
 
-        {/* SUMMARY CARDS */}
+        {/* CONTEÚDO EXCLUSIVO DE RELATÓRIOS */}
         <ReportSummaryCards />
-
-        {/* EVOLUTION CHART */}
         <EvolutionChart />
-
-        {/* CATEGORY CHARTS (Stacked + Treemap) */}
         <CategoryCharts />
-
-        {/* COMPARISON CHART */}
         <ComparisonChart />
-
-        {/* AI INSIGHTS */}
         <AIInsightsSection />
-
-        {/* EXPORT FOOTER */}
         <ExportFooter />
       </div>
     </DashboardLayout>
