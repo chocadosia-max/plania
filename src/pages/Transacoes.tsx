@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Search, X, Edit2, ArrowRight } from "lucide-react";
+import { Plus, Trash2, Search, X, Edit2, FileSpreadsheet, FileText, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { usePlanIA } from "@/contexts/PlanIAContext";
+import { format, isWithinInterval, subMonths, startOfMonth, endOfMonth, parse } from "date-fns";
+import * as XLSX from 'xlsx';
 
 export function getIconeTransacao(descricao: string, tipo: string) {
   const d = (descricao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -44,6 +46,8 @@ export default function Transacoes() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any>(null);
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
 
   const [form, setForm] = useState({
     tipo: 'gasto' as 'receita' | 'gasto',
@@ -54,23 +58,67 @@ export default function Transacoes() {
   });
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => 
-      (t.descricao || "").toLowerCase().includes(search.toLowerCase()) || 
-      (t.categoria || "").toLowerCase().includes(search.toLowerCase())
-    );
-  }, [transactions, search]);
+    return transactions.filter(t => {
+      // Filtro de Busca
+      const matchesSearch = (t.descricao || "").toLowerCase().includes(search.toLowerCase()) || 
+                           (t.categoria || "").toLowerCase().includes(search.toLowerCase());
+      
+      // Filtro de Tipo
+      const matchesTipo = filtroTipo === "todos" || t.tipo === filtroTipo;
+
+      // Filtro de Período
+      let matchesPeriodo = true;
+      if (filtroPeriodo !== "todos" && t.data) {
+        const now = new Date();
+        let start, end;
+        try {
+          const tDate = parse(t.data, 'dd/MM/yyyy', new Date());
+          if (filtroPeriodo === "mes") {
+            start = startOfMonth(now);
+            end = endOfMonth(now);
+          } else if (filtroPeriodo === "anterior") {
+            const prev = subMonths(now, 1);
+            start = startOfMonth(prev);
+            end = endOfMonth(prev);
+          } else if (filtroPeriodo === "3m") {
+            start = subMonths(now, 3);
+            end = now;
+          } else if (filtroPeriodo === "ano") {
+            start = new Date(now.getFullYear(), 0, 1);
+            end = now;
+          }
+          if (start && end) matchesPeriodo = isWithinInterval(tDate, { start, end });
+        } catch (e) { matchesPeriodo = true; }
+      }
+
+      return matchesSearch && matchesTipo && matchesPeriodo;
+    });
+  }, [transactions, search, filtroTipo, filtroPeriodo]);
 
   const totals = useMemo(() => {
-    const receitas = transactions.filter(t => t.tipo === "receita" || t.valor > 0).reduce((sum, t) => sum + Math.abs(t.valor), 0);
-    const gastos = transactions.filter(t => t.tipo === "gasto" || t.valor < 0).reduce((sum, t) => sum + Math.abs(t.valor), 0);
+    const receitas = filteredTransactions.filter(t => t.tipo === "receita").reduce((sum, t) => sum + Math.abs(t.valor), 0);
+    const gastos = filteredTransactions.filter(t => t.tipo === "gasto").reduce((sum, t) => sum + Math.abs(t.valor), 0);
     return { receitas, gastos, saldo: receitas - gastos };
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   const handleSave = () => {
     if (!form.valor || !form.descricao) return;
-    addTransaction({ ...form, valor: parseFloat(form.valor) * (form.tipo === 'gasto' ? -1 : 1) });
+    addTransaction({ ...form, valor: parseFloat(form.valor) });
     setIsDrawerOpen(false);
     setForm({ tipo: 'gasto', valor: "", descricao: "", categoria: "Outros", data: new Date().toISOString().split("T")[0] });
+  };
+
+  const exportarExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredTransactions.map(t => ({
+      Data: t.data,
+      Descrição: t.descricao,
+      Categoria: t.categoria,
+      Tipo: t.tipo,
+      Valor: t.valor
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Transações");
+    XLSX.writeFile(wb, "transacoes-plania.xlsx");
   };
 
   return (
@@ -107,6 +155,28 @@ export default function Transacoes() {
               </div>
             </SheetContent>
           </Sheet>
+        </div>
+      </div>
+
+      {/* Filtros e Exportação */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-xl border border-border/40">
+          <button onClick={() => setFiltroTipo("todos")} className={cn("px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroTipo === "todos" ? "bg-card text-primary shadow-sm" : "text-muted-foreground")}>Todos</button>
+          <button onClick={() => setFiltroTipo("receita")} className={cn("px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroTipo === "receita" ? "bg-green-500/10 text-green-500 shadow-sm" : "text-muted-foreground")}>Receitas</button>
+          <button onClick={() => setFiltroTipo("gasto")} className={cn("px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroTipo === "gasto" ? "bg-red-400/10 text-red-400 shadow-sm" : "text-muted-foreground")}>Gastos</button>
+        </div>
+
+        <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-xl border border-border/40">
+          <button onClick={() => setFiltroPeriodo("todos")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "todos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Tudo</button>
+          <button onClick={() => setFiltroPeriodo("mes")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "mes" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Este mês</button>
+          <button onClick={() => setFiltroPeriodo("anterior")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "anterior" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Mês anterior</button>
+          <button onClick={() => setFiltroPeriodo("3m")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "3m" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>3 meses</button>
+          <button onClick={() => setFiltroPeriodo("ano")} className={cn("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all", filtroPeriodo === "ano" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>Ano</button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={exportarExcel}><FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel</Button>
+          <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={() => window.print()}><FileText className="w-3.5 h-3.5 text-red-400" /> PDF</Button>
         </div>
       </div>
 

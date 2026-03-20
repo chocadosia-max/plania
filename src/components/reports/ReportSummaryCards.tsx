@@ -43,14 +43,14 @@ function SummaryCard({ icon: Icon, label, value, subValue, positive, color, dela
   );
 }
 
-export function ReportSummaryCards() {
+export function ReportSummaryCards({ data }: { data: any }) {
   const cards = [
-    { icon: TrendingUp, label: "Total Receitas", value: "R$ 8.400", subValue: "+12% vs anterior", positive: true, color: "bg-green-500/15 text-green-500", delay: 0 },
-    { icon: TrendingDown, label: "Total Gastos", value: "R$ 5.230", subValue: "-8% vs anterior", positive: true, color: "bg-red-400/15 text-red-400", delay: 100 },
-    { icon: Wallet, label: "Saldo Período", value: "R$ 3.170", subValue: "↑ positivo", positive: true, color: "bg-primary/15 text-primary", delay: 200 },
-    { icon: Target, label: "Maior Gasto", value: "R$ 890", subValue: "Aluguel", color: "bg-destructive/15 text-destructive", delay: 300 },
-    { icon: Calendar, label: "Melhor Mês", value: "Fevereiro", subValue: "R$ 1.200 de saldo", color: "bg-amber-500/15 text-amber-500", delay: 400 },
-    { icon: Percent, label: "Taxa de Economia", value: "37.7%", subValue: "+5% vs anterior", positive: true, color: "bg-blue-500/15 text-blue-500", delay: 500 },
+    { icon: TrendingUp, label: "Total Receitas", value: `R$ ${data.receitas.toLocaleString('pt-BR')}`, subValue: "No período", positive: true, color: "bg-green-500/15 text-green-500", delay: 0 },
+    { icon: TrendingDown, label: "Total Gastos", value: `R$ ${data.gastos.toLocaleString('pt-BR')}`, subValue: "No período", positive: false, color: "bg-red-400/15 text-red-400", delay: 100 },
+    { icon: Wallet, label: "Saldo Período", value: `R$ ${data.saldo.toLocaleString('pt-BR')}`, subValue: data.saldo >= 0 ? "↑ positivo" : "↓ negativo", positive: data.saldo >= 0, color: "bg-primary/15 text-primary", delay: 200 },
+    { icon: Target, label: "Maior Gasto", value: data.maiorGasto ? `R$ ${Math.abs(data.maiorGasto.valor).toLocaleString('pt-BR')}` : "R$ 0", subValue: data.maiorGasto?.descricao || "Nenhum", color: "bg-destructive/15 text-destructive", delay: 300 },
+    { icon: Percent, label: "Taxa de Economia", value: `${data.taxaEconomia}%`, subValue: "Do faturamento", positive: true, color: "bg-blue-500/15 text-blue-500", delay: 400 },
+    { icon: Calendar, label: "Transações", value: String(data.totalTransacoes), subValue: "Itens processados", color: "bg-amber-500/15 text-amber-500", delay: 500 },
   ];
 
   return (

@@ -7,7 +7,7 @@ import { Share2, FileSpreadsheet, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePlanIA } from "@/contexts/PlanIAContext";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parse } from "date-fns";
 
 // Components específicos de relatórios
 import { ReportSummaryCards } from "@/components/reports/ReportSummaryCards";
@@ -28,8 +28,59 @@ const Relatorios = () => {
   const { transactions } = usePlanIA();
   const [activePeriod, setActivePeriod] = useState('mes');
 
+  const reportData = useMemo(() => {
+    const now = new Date();
+    let start, end;
+    
+    if (activePeriod === 'mes') {
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+    } else if (activePeriod === '3m') {
+      start = subMonths(now, 3);
+      end = now;
+    } else if (activePeriod === '6m') {
+      start = subMonths(now, 6);
+      end = now;
+    } else {
+      start = new Date(now.getFullYear(), 0, 1);
+      end = now;
+    }
+
+    const filtered = transactions.filter(t => {
+      try {
+        const tDate = parse(t.data, 'dd/MM/yyyy', new Date());
+        return isWithinInterval(tDate, { start, end });
+      } catch (e) { return false; }
+    });
+
+    const receitas = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + Math.abs(t.valor), 0);
+    const gastos = filtered.filter(t => t.tipo === "gasto").reduce((s, t) => s + Math.abs(t.valor), 0);
+    const saldo = receitas - gastos;
+
+    const porCategoria = filtered.reduce((acc: any, t) => {
+      if (t.tipo === 'gasto') {
+        const cat = t.categoria || "Outros";
+        acc[cat] = (acc[cat] || 0) + Math.abs(t.valor);
+      }
+      return acc;
+    }, {});
+
+    const maiorGasto = filtered
+      .filter(t => t.tipo === "gasto")
+      .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor))[0];
+
+    return {
+      receitas, gastos, saldo,
+      porCategoria,
+      maiorGasto,
+      totalTransacoes: filtered.length,
+      taxaEconomia: receitas > 0 ? ((saldo / receitas) * 100).toFixed(1) : "0"
+    };
+  }, [transactions, activePeriod]);
+
   const handleExport = (type: string) => {
-    toast.success(`Exportando relatório em ${type}... 🚀`);
+    if (type === 'PDF') window.print();
+    else toast.success(`Exportando relatório em ${type}... 🚀`);
   };
 
   return (
@@ -42,7 +93,7 @@ const Relatorios = () => {
               {periods.find(p => p.id === activePeriod)?.label}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">Análise baseada em {transactions.length} transações reais</p>
+          <p className="text-sm text-muted-foreground">Análise baseada em {reportData.totalTransacoes} transações reais</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -77,11 +128,11 @@ const Relatorios = () => {
         </div>
       </div>
 
-      <ReportSummaryCards />
-      <EvolutionChart />
-      <CategoryCharts />
-      <ComparisonChart />
-      <AIInsightsSection />
+      <ReportSummaryCards data={reportData} />
+      <EvolutionChart transactions={transactions} />
+      <CategoryCharts data={reportData.porCategoria} />
+      <ComparisonChart transactions={transactions} />
+      <AIInsightsSection data={reportData} />
       <ExportFooter />
     </div>
   );
