@@ -38,12 +38,30 @@ const PlanIAContext = createContext<PlanIAContextType | undefined>(undefined);
 const safeParse = (key: string, fallback: any) => {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
+    if (!item) return fallback;
+    const parsed = JSON.parse(item);
+    return parsed || fallback;
   } catch (e) { return fallback; }
 };
 
+// Função para buscar transações de qualquer uma das chaves disponíveis
+const getInitialTransactions = () => {
+  const pTransacoes = safeParse("plania_transacoes", []);
+  const pData = safeParse("plania-data", null);
+  
+  if (Array.isArray(pTransacoes) && pTransacoes.length > 0) return pTransacoes;
+  
+  if (pData) {
+    if (Array.isArray(pData.transacoes)) return pData.transacoes;
+    if (Array.isArray(pData.transactions)) return pData.transactions;
+    if (Array.isArray(pData)) return pData;
+  }
+  
+  return [];
+};
+
 export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<any[]>(() => safeParse("plania_transacoes", []));
+  const [transactions, setTransactions] = useState<any[]>(() => getInitialTransactions());
   const [goals, setGoals] = useState<any[]>(() => safeParse("plania_metas", []));
   const [budgets, setBudgets] = useState<any[]>(() => safeParse("plania_orcamentos", []));
   const [investments, setInvestments] = useState<any[]>(() => safeParse("plania_investimentos", []));
@@ -53,8 +71,20 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [viewType, setViewType] = useState<'month' | 'year'>('month');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
+  // Efeito de Sincronização Global
   useEffect(() => {
+    // 1. Salva como array simples (compatibilidade com componentes antigos)
     localStorage.setItem("plania_transacoes", JSON.stringify(transactions));
+    
+    // 2. Salva no objeto estruturado plania-data (padrão do novo motor)
+    const currentData = safeParse("plania-data", {});
+    localStorage.setItem("plania-data", JSON.stringify({
+      ...currentData,
+      transacoes: transactions,
+      ultimaAtualizacao: new Date().toISOString()
+    }));
+
+    // 3. Outras chaves
     localStorage.setItem("plania_metas", JSON.stringify(goals));
     localStorage.setItem("plania_orcamentos", JSON.stringify(budgets));
     localStorage.setItem("plania_investimentos", JSON.stringify(investments));
@@ -62,25 +92,25 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem("plania_clientes", JSON.stringify(clientes));
     localStorage.setItem("plania_tabs", JSON.stringify(dynamicTabs));
     
-    // Sincroniza com plania-data para o hook useDadosFinanceiros
-    localStorage.setItem("plania-data", JSON.stringify({
-      transacoes: transactions,
-      ultimaAtualizacao: new Date().toISOString()
-    }));
+    console.log("🔄 Sincronização completa: plania-data e plania_transacoes atualizados.");
   }, [transactions, goals, budgets, investments, dividas, clientes, dynamicTabs]);
 
   const importData = (data: any) => {
     const transacoesProcessadas = data.transacoes || [];
+    
+    // Atualiza estados
     setTransactions(transacoesProcessadas);
     setDividas(data.dividas || []);
     setClientes(data.clientes || []);
     
-    // Salva em ambas as chaves para garantir sincronia
+    // Força gravação imediata para garantir sincronia pós-importação
+    localStorage.setItem("plania_transacoes", JSON.stringify(transacoesProcessadas));
     localStorage.setItem("plania-data", JSON.stringify({
       transacoes: transacoesProcessadas,
+      dividas: data.dividas || [],
+      clientes: data.clientes || [],
       ultimaAtualizacao: new Date().toISOString()
     }));
-    localStorage.setItem("plania_transacoes", JSON.stringify(transacoesProcessadas));
 
     const newTabs: DynamicTab[] = [];
     if (data.dividas?.length > 0) newTabs.push({ id: 'dividas', label: 'Dívidas', icon: '💳', path: '/dashboard/dividas', isNew: true });
@@ -99,7 +129,7 @@ export const PlanIAProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const getBudgetSpent = (cat: string) => {
     return Math.abs(transactions
-      .filter(t => t.categoria === cat && t.tipo === 'gasto')
+      .filter(t => t.categoria === cat && (t.tipo === 'gasto' || t.tipo === 'despesa'))
       .reduce((acc, t) => acc + (Number(t.valor) || 0), 0));
   };
 
