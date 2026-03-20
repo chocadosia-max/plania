@@ -7,15 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { usePlanIA } from "@/contexts/PlanIAContext";
 
 export function DataSettings() {
+  const { clearAllData } = usePlanIA();
+
   const handleExportExcel = () => toast.success("Exportação Excel iniciada! 📊");
   const handleExportPDF = () => toast.success("Relatório PDF gerado! 📄");
-  const handleClearData = () => {
-    localStorage.clear();
-    toast.success("Todos os dados foram limpos.");
-    setTimeout(() => window.location.reload(), 1000);
-  };
 
   return (
     <section className="space-y-5 pb-10" style={{ animation: "reveal 0.6s cubic-bezier(0.16,1,0.3,1) both", animationDelay: "400ms" }}>
@@ -58,7 +56,7 @@ export function DataSettings() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={clearAllData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Sim, apagar tudo
               </AlertDialogAction>
             </AlertDialogFooter>
