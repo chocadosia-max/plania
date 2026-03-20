@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 /* --- TYPES --- */
 interface Asset {

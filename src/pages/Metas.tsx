@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription
 } from "@/components/ui/dialog";
@@ -60,7 +61,7 @@ export default function Metas() {
     const goal = goals.find(g => g.id === id);
     setGoals(prev => prev.filter(g => g.id !== id));
     toast.error(`🗑️ Meta '${goal?.name}' excluída`, {
-      action: { label: "Desfazer →", onClick: () => setGoals(prev => [...prev, goal!]) }
+      action: { label: "Desfazer →", onClick: () => setTransactions(prev => [...prev, goal!]) }
     });
   };
 
