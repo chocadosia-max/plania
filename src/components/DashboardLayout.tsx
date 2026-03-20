@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AIChatPanel } from "@/components/AIChatPanel";
@@ -7,13 +8,30 @@ import { PageTransition } from "@/components/PageTransition";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Palette } from "lucide-react";
+import { Palette, User } from "lucide-react";
 
 const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const currentMonth = months[new Date().getMonth()];
   usePageTitle();
+
+  const [userName, setUserName] = useState(() => localStorage.getItem("plania-user-name") || "Mariana");
+  const [userPhoto, setUserPhoto] = useState(() => localStorage.getItem("plania-user-photo"));
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setUserName(localStorage.getItem("plania-user-name") || "Mariana");
+      setUserPhoto(localStorage.getItem("plania-user-photo"));
+    };
+
+    window.addEventListener("profile-updated", handleUpdate);
+    return () => window.removeEventListener("profile-updated", handleUpdate);
+  }, []);
+
+  const getInitials = (name: string) => {
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
 
   return (
     <SidebarProvider>
@@ -30,7 +48,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 flex items-center justify-between">
               <div>
-                <h1 className="text-base font-bold text-foreground">Olá, Mariana 👋</h1>
+                <h1 className="text-base font-bold text-foreground">Olá, {userName} 👋</h1>
                 <p className="text-[11px] text-muted-foreground -mt-0.5">{currentMonth} 2026</p>
               </div>
               <div className="flex items-center gap-2">
@@ -39,9 +57,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <Palette className="w-4 h-4" />
                   </Button>
                 </Link>
-                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary">
-                  MF
-                </div>
+                <Link to="/dashboard/config">
+                  <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary overflow-hidden border border-primary/20">
+                    {userPhoto ? (
+                      <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials(userName)
+                    )}
+                  </div>
+                </Link>
               </div>
             </div>
           </header>

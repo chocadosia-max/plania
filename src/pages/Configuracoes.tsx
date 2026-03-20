@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTheme, themeConfig, ThemeName } from "@/contexts/ThemeContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -80,12 +80,12 @@ const Configuracoes = () => {
   const [customAccent, setCustomAccent] = useState("#ec4899");
   const [customDark, setCustomDark] = useState(true);
 
-  // Profile
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [name, setName] = useState("Usuário PlanIA");
-  const [email, setEmail] = useState("usuario@plania.com");
-  const [profession, setProfession] = useState("Desenvolvedor");
-  const [profileType, setProfileType] = useState("pessoal");
+  // Profile State with LocalStorage
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(() => localStorage.getItem("plania-user-photo"));
+  const [name, setName] = useState(() => localStorage.getItem("plania-user-name") || "Mariana");
+  const [email, setEmail] = useState(() => localStorage.getItem("plania-user-email") || "mariana@exemplo.com");
+  const [profession, setProfession] = useState(() => localStorage.getItem("plania-user-profession") || "Designer");
+  const [profileType, setProfileType] = useState(() => localStorage.getItem("plania-user-type") || "pessoal");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Financial
@@ -106,12 +106,26 @@ const Configuracoes = () => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => setProfilePhoto(ev.target?.result as string);
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result as string;
+        setProfilePhoto(base64);
+      };
       reader.readAsDataURL(file);
     }
   };
 
   const handleSaveProfile = () => {
+    localStorage.setItem("plania-user-name", name);
+    localStorage.setItem("plania-user-email", email);
+    localStorage.setItem("plania-user-profession", profession);
+    localStorage.setItem("plania-user-type", profileType);
+    if (profilePhoto) {
+      localStorage.setItem("plania-user-photo", profilePhoto);
+    }
+    
+    // Dispatch custom event to notify other components (like DashboardLayout)
+    window.dispatchEvent(new Event("profile-updated"));
+    
     toast.success("Perfil atualizado com sucesso! ✨");
   };
 
@@ -133,7 +147,7 @@ const Configuracoes = () => {
   const handleClearData = () => {
     localStorage.clear();
     toast.success("Todos os dados foram limpos.");
-    window.location.reload();
+    setTimeout(() => window.location.reload(), 1000);
   };
 
   return (
