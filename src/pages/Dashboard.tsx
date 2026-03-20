@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { QuickLaunchBar } from "@/components/QuickLaunchBar";
 import { getIconeTransacao } from "./Transacoes";
 import { format, addMonths, subMonths, addYears, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -145,8 +144,6 @@ const Dashboard = () => {
           </Link>
         </div>
       </div>
-
-      <QuickLaunchBar />
     </div>
   );
 };
