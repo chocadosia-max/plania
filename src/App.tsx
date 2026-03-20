@@ -30,8 +30,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
             
-            {/* Rotas do Dashboard */}
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Rotas do Dashboard - Todas usando DashWrap consistentemente */}
+            <Route path="/dashboard" element={<DashWrap><Dashboard /></DashWrap>} />
             <Route path="/dashboard/transacoes" element={<DashWrap><Transacoes /></DashWrap>} />
             <Route path="/dashboard/metas" element={<DashWrap><Metas /></DashWrap>} />
             <Route path="/dashboard/config" element={<DashWrap><Configuracoes /></DashWrap>} />

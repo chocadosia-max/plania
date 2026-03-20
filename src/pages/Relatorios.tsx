@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Share2, FileSpreadsheet, FileText } from "lucide-react";
@@ -37,90 +36,88 @@ const Relatorios = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-8">
-        {/* HEADER DE RELATÓRIOS */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6" style={{ animation: "reveal 0.5s cubic-bezier(0.16,1,0.3,1) both" }}>
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold">
-                {periods.find(p => p.id === activePeriod)?.label}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">Análise detalhada da sua saúde financeira</p>
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-8">
+      {/* HEADER DE RELATÓRIOS */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6" style={{ animation: "reveal 0.5s cubic-bezier(0.16,1,0.3,1) both" }}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold">
+              {periods.find(p => p.id === activePeriod)?.label}
+            </Badge>
           </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            {/* Seletor de Período */}
-            <div className="flex p-1 bg-muted/50 rounded-xl border border-border/40">
-              {periods.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setActivePeriod(p.id)}
-                  className={cn(
-                    "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all",
-                    activePeriod === p.id 
-                      ? "bg-card text-foreground shadow-sm" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Filtro de Data Personalizado */}
-            {activePeriod === 'custom' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 text-xs font-bold border-primary/30 text-primary">
-                    <CalendarIcon className="w-3.5 h-3.5" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        `${format(dateRange.from, "dd/MM")} - ${format(dateRange.to, "dd/MM")}`
-                      ) : format(dateRange.from, "dd/MM/yyyy")
-                    ) : "Selecionar período"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    selected={dateRange as any}
-                    onSelect={setDateRange as any}
-                    numberOfMonths={2}
-                    locale={ptBR}
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-
-            {/* Botões de Exportação */}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Excel')}>
-                <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('PDF')}>
-                <FileText className="w-3.5 h-3.5 text-red-400" /> PDF
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Compartilhar')}>
-                <Share2 className="w-3.5 h-3.5 text-primary" /> Compartilhar
-              </Button>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">Análise detalhada da sua saúde financeira</p>
         </div>
 
-        {/* CONTEÚDO EXCLUSIVO DE RELATÓRIOS */}
-        <ReportSummaryCards />
-        <EvolutionChart />
-        <CategoryCharts />
-        <ComparisonChart />
-        <AIInsightsSection />
-        <ExportFooter />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          {/* Seletor de Período */}
+          <div className="flex p-1 bg-muted/50 rounded-xl border border-border/40">
+            {periods.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setActivePeriod(p.id)}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all",
+                  activePeriod === p.id 
+                    ? "bg-card text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Filtro de Data Personalizado */}
+          {activePeriod === 'custom' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 text-xs font-bold border-primary/30 text-primary">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      `${format(dateRange.from, "dd/MM")} - ${format(dateRange.to, "dd/MM")}`
+                    ) : format(dateRange.from, "dd/MM/yyyy")
+                  ) : "Selecionar período"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  selected={dateRange as any}
+                  onSelect={setDateRange as any}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Botões de Exportação */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Excel')}>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" /> Excel
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('PDF')}>
+              <FileText className="w-3.5 h-3.5 text-red-400" /> PDF
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-[11px] font-bold" onClick={() => handleExport('Compartilhar')}>
+              <Share2 className="w-3.5 h-3.5 text-primary" /> Compartilhar
+            </Button>
+          </div>
+        </div>
       </div>
-    </DashboardLayout>
+
+      {/* CONTEÚDO EXCLUSIVO DE RELATÓRIOS */}
+      <ReportSummaryCards />
+      <EvolutionChart />
+      <CategoryCharts />
+      <ComparisonChart />
+      <AIInsightsSection />
+      <ExportFooter />
+    </div>
   );
 };
 

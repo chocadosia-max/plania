@@ -8,7 +8,6 @@ import {
   Heart, Music,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -177,104 +176,102 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <DashboardLayout>
-      <div className="p-4 sm:p-6 space-y-6">
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard icon={Wallet} label="Saldo Atual" targetValue={16320} change="+8,2%" positive accentColor="hsl(var(--chart-1))" sparkData={sparklines.saldo} tooltip="Saldo consolidado de todas as contas" delay={0} />
-          <StatCard icon={TrendingUp} label="Receitas do mês" targetValue={5600} change="+14,3%" positive accentColor="hsl(var(--chart-2))" sparkData={sparklines.receita} tooltip="Total de entradas em março" delay={80} />
-          <StatCard icon={CreditCard} label="Gastos do mês" targetValue={3497} change="-3,1%" positive={false} accentColor="hsl(var(--chart-3))" sparkData={sparklines.gastos} tooltip="Total de saídas em março" delay={160} />
-          <StatCard icon={PiggyBank} label="Economia" targetValue={2103} prefix="R$ " change="37,5% do salário" positive accentColor="hsl(var(--chart-4))" sparkData={sparklines.economia} tooltip="Diferença entre receitas e gastos" delay={240} />
-        </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard icon={Wallet} label="Saldo Atual" targetValue={16320} change="+8,2%" positive accentColor="hsl(var(--chart-1))" sparkData={sparklines.saldo} tooltip="Saldo consolidado de todas as contas" delay={0} />
+        <StatCard icon={TrendingUp} label="Receitas do mês" targetValue={5600} change="+14,3%" positive accentColor="hsl(var(--chart-2))" sparkData={sparklines.receita} tooltip="Total de entradas em março" delay={80} />
+        <StatCard icon={CreditCard} label="Gastos do mês" targetValue={3497} change="-3,1%" positive={false} accentColor="hsl(var(--chart-3))" sparkData={sparklines.gastos} tooltip="Total de saídas em março" delay={160} />
+        <StatCard icon={PiggyBank} label="Economia" targetValue={2103} prefix="R$ " change="37,5% do salário" positive accentColor="hsl(var(--chart-4))" sparkData={sparklines.economia} tooltip="Diferença entre receitas e gastos" delay={240} />
+      </div>
 
-        {/* Charts row */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 glass-card rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground text-sm">Receitas vs Gastos</h3>
-              <div className="flex gap-1">
-                {(["mensal", "trimestral", "anual"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setChartFilter(f)}
-                    className={`text-xs px-3 py-1 rounded-full transition-all duration-200 ${
-                      chartFilter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))", fontSize: 12 }}
-                  formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR")}`, ""]}
-                />
-                <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} animationDuration={800} />
-                <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} animationDuration={800} animationBegin={200} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="glass-card rounded-xl p-5">
-            <h3 className="font-semibold text-foreground text-sm mb-4">Gastos por categoria</h3>
-            <div className="h-[180px] w-full">
-              {/* Pie chart content here */}
-            </div>
-            <div className="space-y-2 mt-1">
-              {categoryData.map((c) => (
-                <div key={c.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.color }} />
-                    <span className="text-muted-foreground">{c.name}</span>
-                  </div>
-                  <span className="font-mono-financial text-foreground">R$ {c.value.toLocaleString("pt-BR")}</span>
-                </div>
+      {/* Charts row */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 glass-card rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground text-sm">Receitas vs Gastos</h3>
+            <div className="flex gap-1">
+              {(["mensal", "trimestral", "anual"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setChartFilter(f)}
+                  className={`text-xs px-3 py-1 rounded-full transition-all duration-200 ${
+                    chartFilter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
               ))}
             </div>
           </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))", fontSize: 12 }}
+                formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR")}`, ""]}
+              />
+              <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} animationDuration={800} />
+              <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} animationDuration={800} animationBegin={200} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Transactions */}
         <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground text-sm">Transações recentes</h3>
-            <Button variant="ghost" size="sm" className="text-xs text-primary">
-              Ver todas
-            </Button>
+          <h3 className="font-semibold text-foreground text-sm mb-4">Gastos por categoria</h3>
+          <div className="h-[180px] w-full">
+            {/* Pie chart content here */}
           </div>
-          <div className="space-y-1">
-            {transactions.map((t, i) => {
-              const IconComp = categoryIcons[t.desc] || ShoppingCart;
-              return (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/30 transition-colors"
-                  style={{
-                    opacity: i < visibleRows ? 1 : 0,
-                    transform: i < visibleRows ? "translateX(0)" : "translateX(-20px)",
-                    transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
-                  }}
-                >
-                  <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
-                    <IconComp className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{t.desc}</p>
-                    <p className="text-[11px] text-muted-foreground">{t.cat} · {t.date}</p>
-                  </div>
-                  <span className={`font-mono-financial text-sm font-medium shrink-0 ${t.value > 0 ? "text-green-500" : "text-red-400"}`}>
-                    {t.value > 0 ? "+" : ""}R$ {Math.abs(t.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
+          <div className="space-y-2 mt-1">
+            {categoryData.map((c) => (
+              <div key={c.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.color }} />
+                  <span className="text-muted-foreground">{c.name}</span>
                 </div>
-              );
-            })}
+                <span className="font-mono-financial text-foreground">R$ {c.value.toLocaleString("pt-BR")}</span>
+              </div>
+            ))}
           </div>
+        </div>
+      </div>
+
+      {/* Transactions */}
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-foreground text-sm">Transações recentes</h3>
+          <Button variant="ghost" size="sm" className="text-xs text-primary">
+            Ver todas
+          </Button>
+        </div>
+        <div className="space-y-1">
+          {transactions.map((t, i) => {
+            const IconComp = categoryIcons[t.desc] || ShoppingCart;
+            return (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/30 transition-colors"
+                style={{
+                  opacity: i < visibleRows ? 1 : 0,
+                  transform: i < visibleRows ? "translateX(0)" : "translateX(-20px)",
+                  transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
+                }}
+              >
+                <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
+                  <IconComp className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{t.desc}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.cat} · {t.date}</p>
+                </div>
+                <span className={`font-mono-financial text-sm font-medium shrink-0 ${t.value > 0 ? "text-green-500" : "text-red-400"}`}>
+                  {t.value > 0 ? "+" : ""}R$ {Math.abs(t.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -283,7 +280,7 @@ const Dashboard = () => {
         <QuickLaunchBar />
       </div>
       <AIChatPanel />
-    </DashboardLayout>
+    </div>
   );
 };
 
