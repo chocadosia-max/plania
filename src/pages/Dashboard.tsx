@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Wallet, TrendingUp, CreditCard, PiggyBank,
-  ChevronLeft, ChevronRight, Calendar
+  ChevronLeft, ChevronRight, Calendar, RefreshCw
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { format, addMonths, subMonths, addYears, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useDadosFinanceiros, Periodo } from "@/hooks/useDadosFinanceiros";
+import { usePlanIA } from "@/contexts/PlanIAContext";
 
 function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, positive, delay, link }: any) {
   const [val, setVal] = useState(0);
@@ -43,6 +44,7 @@ function StatCard({ icon: Icon, label, targetValue, prefix = "R$ ", change, posi
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewType, setViewType] = useState<'month' | 'year'>('month');
+  const { isSyncing, sync } = usePlanIA();
 
   const periodo: Periodo = {
     tipo: viewType,
@@ -52,34 +54,12 @@ const Dashboard = () => {
 
   const dados = useDadosFinanceiros(periodo);
 
-  // Debug para ver o que está no plania-data
-  useEffect(() => {
-    const raw = localStorage.getItem("plania-data");
-    if (raw) {
-      try {
-        const obj = JSON.parse(raw);
-        console.log("=== plania-data DEBUG ===");
-        console.log("Chaves:", Object.keys(obj));
-        Object.entries(obj).forEach(([k, v]) => {
-          if (Array.isArray(v)) {
-            console.log(`  ${k}: ${v.length} items`);
-            if (v.length > 0) console.log("  Exemplo:", v[0]);
-          } else {
-            console.log(`  ${k}:`, typeof v, v);
-          }
-        });
-      } catch (e) {
-        console.error("Erro ao parsear plania-data:", e);
-      }
-    }
-  }, []);
-
   const handlePrev = () => setSelectedDate(viewType === 'month' ? subMonths(selectedDate, 1) : subYears(selectedDate, 1));
   const handleNext = () => setSelectedDate(viewType === 'month' ? addMonths(selectedDate, 1) : addYears(selectedDate, 1));
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      {/* Seletor de Período */}
+      {/* Seletor de Período e Ações */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 animate-reveal">
         <div className="flex items-center gap-4">
           <div className="flex p-1 bg-muted/50 rounded-xl border border-border/40">
@@ -108,9 +88,21 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={() => setSelectedDate(new Date())}>
-          <Calendar className="w-3.5 h-3.5" /> Hoje
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 text-[10px] font-black uppercase border-primary/30 text-primary hover:bg-primary/5"
+            onClick={sync}
+            disabled={isSyncing}
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", isSyncing && "animate-spin")} />
+            {isSyncing ? "Sincronizando..." : "Sincronizar"}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2 text-[10px] font-black uppercase" onClick={() => setSelectedDate(new Date())}>
+            <Calendar className="w-3.5 h-3.5" /> Hoje
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
