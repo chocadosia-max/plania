@@ -52,6 +52,23 @@ const weeklyData = [
   { name: 'Sem 4', orcado: 1200, gasto: 800 },
 ];
 
+/* --- HELPERS --- */
+function getStatusClass(gasto: number, limite: number) {
+  const percent = (gasto / limite) * 100;
+  if (percent >= 100) return "status-estourado";
+  if (percent >= 90)  return "status-critico";
+  if (percent >= 60)  return "status-atencao";
+  return "status-ok";
+}
+
+function getStatusLabel(gasto: number, limite: number) {
+  const percent = (gasto / limite) * 100;
+  if (percent >= 100) return { icon: "⛔", text: "Estourado!", class: "badge-estourado" };
+  if (percent >= 90)  return { icon: "🔴", text: "Limite crítico", class: "badge-critico" };
+  if (percent >= 60)  return { icon: "🟠", text: "Atenção", class: "badge-atencao" };
+  return { icon: "🟢", text: "No controle", class: "badge-ok" };
+}
+
 /* --- COMPONENTS --- */
 
 function GaugeChart({ percent }: { percent: number }) {
@@ -83,7 +100,6 @@ export default function Orcamentos() {
   const totalLimit = budgets.reduce((acc, b) => acc + b.limit, 0);
   const totalSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
   const totalPct = Math.round((totalSpent / totalLimit) * 100);
-  const healthStatus = totalPct < 70 ? 'saudavel' : totalPct < 90 ? 'atencao' : 'critico';
 
   const handleDelete = (id: number) => {
     const budget = budgets.find(b => b.id === id);
@@ -170,16 +186,29 @@ function BudgetCard({ budget: b, delay, onDelete }: { budget: Budget; delay: num
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const pct = Math.round((b.spent / b.limit) * 100);
-  const barColor = pct < 60 ? 'bg-green-500' : pct < 85 ? 'bg-yellow-500' : 'bg-red-400';
+  const statusClass = getStatusClass(b.spent, b.limit);
+  const statusLabel = getStatusLabel(b.spent, b.limit);
   const isHighValue = b.limit > 1000;
 
   return (
-    <div className="glass-card rounded-2xl p-5 space-y-4 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden animate-reveal" style={{ animationDelay: `${delay}ms` }}>
+    <div 
+      className={cn(
+        "orcamento-card rounded-2xl p-5 space-y-4 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden animate-reveal",
+        statusClass
+      )} 
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <span className="text-3xl">{b.emoji}</span>
           <div>
-            <h4 className="text-sm font-bold text-foreground">{b.cat}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-bold text-foreground">{b.cat}</h4>
+              <div className={cn("badge-status text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-1", statusLabel.class)}>
+                <span>{statusLabel.icon}</span>
+                <span>{statusLabel.text}</span>
+              </div>
+            </div>
             <Badge variant="outline" className="text-[9px] font-black uppercase border-none px-0">R$ {b.limit.toLocaleString('pt-BR')}</Badge>
           </div>
         </div>
@@ -194,14 +223,14 @@ function BudgetCard({ budget: b, delay, onDelete }: { budget: Budget; delay: num
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setIsDeleteModalOpen(true)}>
               <Trash2 className="w-4 h-4" /> Excluir orçamento
-            </MenuItem>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <div className="space-y-2">
-        <div className="h-2.5 w-full bg-muted/30 rounded-full overflow-hidden">
-          <div className={cn("h-full rounded-full transition-all duration-1000", barColor)} style={{ width: `${Math.min(pct, 100)}%` }} />
+        <div className={cn("h-2.5 w-full bg-muted/30 rounded-full overflow-hidden", statusClass.replace('status-', 'barra-'))}>
+          <div className="barra-fill h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(pct, 100)}%` }} />
         </div>
         <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
           <span>Gasto: R$ {b.spent.toLocaleString('pt-BR')}</span>
