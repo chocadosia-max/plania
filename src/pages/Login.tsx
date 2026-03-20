@@ -3,7 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Eye, EyeOff, Check, User, Briefcase, Store } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Check, User, Briefcase, Store, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const phrases = [
   "Seus gastos organizados em 5 minutos",
@@ -18,7 +20,6 @@ const profiles = [
   { id: "empresario", label: "Empresário", icon: Store, emoji: "🏪" },
 ];
 
-/* Password strength */
 function getPasswordStrength(pw: string): { level: number; label: string; color: string } {
   if (!pw) return { level: 0, label: "", color: "" };
   let score = 0;
@@ -47,15 +48,14 @@ const Login = () => {
   const [profile, setProfile] = useState("");
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [phraseVisible, setPhraseVisible] = useState(true);
-  const [slideDirection, setSlideDirection] = useState<"left" | "right">("left");
   const [formKey, setFormKey] = useState(0);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(false);
   const navigate = useNavigate();
 
-  // Field validation states
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [shaking, setShaking] = useState<Record<string, boolean>>({});
 
-  // Rotating phrases
   useEffect(() => {
     const interval = setInterval(() => {
       setPhraseVisible(false);
@@ -81,18 +81,63 @@ const Login = () => {
     if (field === "name" && isSignUp && !name.trim()) triggerShake("name");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let hasError = false;
     if (!emailValid) { triggerShake("email"); hasError = true; }
     if (!password) { triggerShake("password"); hasError = true; }
     if (isSignUp && !name.trim()) { triggerShake("name"); hasError = true; }
     setTouched({ email: true, password: true, name: true });
-    if (!hasError) navigate("/dashboard");
+    
+    if (hasError) return;
+
+    setLoadingEmail(true);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              profile_type: profile,
+            }
+          }
+        });
+        if (error) throw error;
+        toast.success("Conta criada! Verifique seu e-mail.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+      triggerShake("email");
+      triggerShake("password");
+    } finally {
+      setLoadingEmail(false);
+    }
+  };
+
+  const loginComGoogle = async () => {
+    try {
+      setLoadingGoogle(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/dashboard",
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error("Erro ao conectar com Google: " + error.message);
+    } finally {
+      setLoadingGoogle(false);
+    }
   };
 
   const toggleMode = () => {
-    setSlideDirection(isSignUp ? "right" : "left");
     setIsSignUp(!isSignUp);
     setTouched({});
     setFormKey((k) => k + 1);
@@ -100,19 +145,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex transition-colors duration-500">
-      {/* Left panel — animated gradient */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center p-12">
-        {/* Aurora gradient background */}
         <div className="absolute inset-0 hero-gradient animate-aurora opacity-90" />
-        {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/20" />
-
         <div className="relative z-10 text-center max-w-md">
           <h1 className="text-5xl font-extrabold text-white mb-6 tracking-tight drop-shadow-lg">
             Plan<span className="opacity-80">IA</span>
           </h1>
-
-          {/* Rotating phrase */}
           <div className="h-16 flex items-center justify-center">
             <p
               className="text-xl text-white/90 font-medium transition-all duration-400 ease-out"
@@ -125,8 +164,6 @@ const Login = () => {
               {phrases[phraseIndex]}
             </p>
           </div>
-
-          {/* Subtle decorative dots */}
           <div className="flex gap-2 justify-center mt-8">
             {phrases.map((_, i) => (
               <div
@@ -140,7 +177,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm">
           <Link
@@ -150,11 +186,7 @@ const Login = () => {
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Link>
 
-          {/* Form wrapper with slide animation */}
-          <div
-            key={formKey}
-            className={isSignUp ? "animate-slide-left" : "animate-slide-right"}
-          >
+          <div key={formKey} className={isSignUp ? "animate-slide-left" : "animate-slide-right"}>
             <h2 className="text-2xl font-bold text-foreground mb-1">
               {isSignUp ? "Criar conta" : "Bem-vindo de volta"}
             </h2>
@@ -163,7 +195,6 @@ const Login = () => {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name (signup only) */}
               {isSignUp && (
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Nome completo</Label>
@@ -183,7 +214,6 @@ const Login = () => {
                 </div>
               )}
 
-              {/* Email */}
               <div className="space-y-1.5">
                 <Label htmlFor="email">E-mail</Label>
                 <div className={`relative input-glow rounded-lg transition-all ${shaking.email ? "animate-shake" : ""}`}>
@@ -206,7 +236,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
@@ -235,7 +264,6 @@ const Login = () => {
                   </button>
                 </div>
 
-                {/* Password strength bar (signup only) */}
                 {isSignUp && password && (
                   <div className="space-y-1 pt-1">
                     <div className="flex gap-1">
@@ -255,7 +283,6 @@ const Login = () => {
                 )}
               </div>
 
-              {/* Profile selector (signup only) */}
               {isSignUp && (
                 <div className="space-y-2">
                   <Label>Perfil de uso</Label>
@@ -279,26 +306,34 @@ const Login = () => {
                 </div>
               )}
 
-              {/* Submit */}
-              <Button type="submit" className="w-full active:scale-[0.97] transition-transform" size="lg">
-                {isSignUp ? "Criar minha conta" : "Entrar"}
+              <Button type="submit" className="w-full active:scale-[0.97] transition-transform" size="lg" disabled={loadingEmail}>
+                {loadingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : (isSignUp ? "Criar minha conta" : "Entrar")}
               </Button>
 
-              {/* Google login (login only) */}
               {!isSignUp && (
-                <Button type="button" variant="outline" className="w-full gap-2 active:scale-[0.97] transition-transform" size="lg">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                  </svg>
-                  Entrar com Google
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full gap-2 active:scale-[0.97] transition-transform" 
+                  size="lg"
+                  onClick={loginComGoogle}
+                  disabled={loadingGoogle}
+                >
+                  {loadingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                    <>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                      Entrar com Google
+                    </>
+                  )}
                 </Button>
               )}
             </form>
 
-            {/* Toggle login/signup */}
             <p className="text-center text-sm text-muted-foreground mt-6">
               {isSignUp ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
               <button onClick={toggleMode} className="text-primary hover:underline font-medium">
